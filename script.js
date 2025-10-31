@@ -33,15 +33,12 @@ window.addEventListener('load', function() {
 });
 
 function initializeApp() {
-    // Load data from Firebase
     loadOrdersFromFirebase();
     loadExpensesFromFirebase();
-    
-    // Initialize UI
     initializeUI();
 }
 
-// Load orders from Firebase with real-time listener
+// ========== FIREBASE FUNCTIONS ==========
 function loadOrdersFromFirebase() {
     const ordersRef = window.firebaseRef(window.database, 'orders');
     window.firebaseOnValue(ordersRef, (snapshot) => {
@@ -59,7 +56,6 @@ function loadOrdersFromFirebase() {
     });
 }
 
-// Load expenses from Firebase with real-time listener
 function loadExpensesFromFirebase() {
     const expensesRef = window.firebaseRef(window.database, 'expenses');
     window.firebaseOnValue(expensesRef, (snapshot) => {
@@ -73,61 +69,60 @@ function loadExpensesFromFirebase() {
             expenses = [];
         }
         displayExpenses();
+        updateDashboard();
     });
 }
 
-// Save order to Firebase
 function saveOrderToFirebase(order) {
     const ordersRef = window.firebaseRef(window.database, 'orders');
     const newOrderRef = window.firebasePush(ordersRef);
     window.firebaseSet(newOrderRef, order);
 }
 
-// Update order in Firebase
 function updateOrderInFirebase(firebaseId, updates) {
     const orderRef = window.firebaseRef(window.database, `orders/${firebaseId}`);
     window.firebaseUpdate(orderRef, updates);
 }
 
-// Delete order from Firebase
 function deleteOrderFromFirebase(firebaseId) {
     const orderRef = window.firebaseRef(window.database, `orders/${firebaseId}`);
     window.firebaseRemove(orderRef);
 }
 
-// Save expense to Firebase
 function saveExpenseToFirebase(expense) {
     const expensesRef = window.firebaseRef(window.database, 'expenses');
     const newExpenseRef = window.firebasePush(expensesRef);
     window.firebaseSet(newExpenseRef, expense);
 }
 
-// Delete expense from Firebase
 function deleteExpenseFromFirebase(firebaseId) {
     const expenseRef = window.firebaseRef(window.database, `expenses/${firebaseId}`);
     window.firebaseRemove(expenseRef);
 }
 
-// Initialize UI elements
+// ========== UI INITIALIZATION ==========
 function initializeUI() {
-    // Hamburger Menu
     const menuToggle = document.getElementById('menuToggle');
     const sidebar = document.getElementById('sidebar');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
 
-    menuToggle.addEventListener('click', () => {
-        menuToggle.classList.toggle('active');
-        sidebar.classList.toggle('active');
-        sidebarOverlay.classList.toggle('active');
-        document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : 'auto';
-    });
+    if (menuToggle) {
+        menuToggle.addEventListener('click', () => {
+            menuToggle.classList.toggle('active');
+            sidebar.classList.toggle('active');
+            sidebarOverlay.classList.toggle('active');
+            document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : 'auto';
+        });
+    }
 
-    sidebarOverlay.addEventListener('click', () => {
-        menuToggle.classList.remove('active');
-        sidebar.classList.remove('active');
-        sidebarOverlay.classList.remove('active');
-        document.body.style.overflow = 'auto';
-    });
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', () => {
+            menuToggle.classList.remove('active');
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        });
+    }
 
     document.querySelectorAll('.nav-link').forEach(link => {
         link.addEventListener('click', () => {
@@ -140,30 +135,30 @@ function initializeUI() {
         });
     });
 
-    // Theme Toggle
     const themeToggle = document.getElementById('themeToggle');
     const currentTheme = localStorage.getItem('theme') || 'light';
     
     if (currentTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
-        themeToggle.textContent = '☀️';
+        if (themeToggle) themeToggle.textContent = '☀️';
     }
 
-    themeToggle.addEventListener('click', () => {
-        const theme = document.documentElement.getAttribute('data-theme');
-        if (theme === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'light');
-            localStorage.setItem('theme', 'light');
-            themeToggle.textContent = '🌙';
-        } else {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            localStorage.setItem('theme', 'dark');
-            themeToggle.textContent = '☀️';
-        }
-        updateChartTheme();
-    });
+    if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+            const theme = document.documentElement.getAttribute('data-theme');
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                themeToggle.textContent = '🌙';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                themeToggle.textContent = '☀️';
+            }
+            updateChartTheme();
+        });
+    }
 
-    // Logout button
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
@@ -172,91 +167,101 @@ function initializeUI() {
                     window.location.href = 'login.html';
                 }).catch((error) => {
                     console.error('Logout error:', error);
+                    alert('Logout failed. Please try again.');
                 });
             }
         });
     }
 
-    // Order form event listeners
-    document.getElementById('customPrice').addEventListener('input', updatePrice);
-    document.getElementById('customCost').addEventListener('input', updatePrice);
+    const customPrice = document.getElementById('customPrice');
+    const customCost = document.getElementById('customCost');
     
-    document.getElementById('orderForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        const quantity = parseInt(document.getElementById('quantity').value);
-        const unitPrice = parseFloat(document.getElementById('unitPrice').value);
-        const unitCost = parseFloat(document.getElementById('unitCost').value);
-        const orderType = document.getElementById('orderType').value;
-        
-        let frameType, frameSize;
-        if (orderType === 'custom') {
-            frameType = 'Custom';
-            frameSize = document.getElementById('customFrameDesc').value || 'Custom Frame';
-        } else {
-            frameType = document.getElementById('frameType').value;
-            frameSize = document.getElementById('frameSize').value;
-        }
+    if (customPrice) customPrice.addEventListener('input', updatePrice);
+    if (customCost) customCost.addEventListener('input', updatePrice);
+    
+    const orderForm = document.getElementById('orderForm');
+    if (orderForm) {
+        orderForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const unitPrice = parseFloat(document.getElementById('unitPrice').value);
+            const unitCost = parseFloat(document.getElementById('unitCost').value);
+            const orderType = document.getElementById('orderType').value;
+            
+            let frameType, frameSize;
+            if (orderType === 'custom') {
+                frameType = 'Custom';
+                frameSize = document.getElementById('customFrameDesc').value || 'Custom Frame';
+            } else {
+                frameType = document.getElementById('frameType').value;
+                frameSize = document.getElementById('frameSize').value;
+            }
 
-        const order = {
-            id: Date.now(),
-            orderNumber: document.getElementById('orderNumber').value,
-            customerName: document.getElementById('customerName').value,
-            phone: document.getElementById('phone').value,
-            addressLine: document.getElementById('addressLine').value,
-            city: document.getElementById('city').value,
-            district: document.getElementById('district').value,
-            orderNotes: document.getElementById('orderNotes').value,
-            orderType: orderType,
-            frameType: frameType,
-            frameSize: frameSize,
-            quantity: quantity,
-            unitPrice: unitPrice,
-            unitCost: unitCost,
-            totalPrice: unitPrice * quantity,
-            totalCost: unitCost * quantity,
-            originalTotalCost: unitCost * quantity,
-            date: document.getElementById('orderDate').value,
-            status: document.getElementById('orderStatus').value,
-            paymentMethod: document.getElementById('paymentMethod').value
-        };
+            const order = {
+                id: Date.now(),
+                orderNumber: document.getElementById('orderNumber').value,
+                customerName: document.getElementById('customerName').value,
+                phone: document.getElementById('phone').value,
+                addressLine: document.getElementById('addressLine').value,
+                city: document.getElementById('city').value,
+                district: document.getElementById('district').value,
+                orderNotes: document.getElementById('orderNotes').value,
+                orderType: orderType,
+                frameType: frameType,
+                frameSize: frameSize,
+                quantity: quantity,
+                unitPrice: unitPrice,
+                unitCost: unitCost,
+                totalPrice: unitPrice * quantity,
+                totalCost: unitCost * quantity,
+                originalTotalCost: unitCost * quantity,
+                date: document.getElementById('orderDate').value,
+                status: document.getElementById('orderStatus').value,
+                paymentMethod: document.getElementById('paymentMethod').value
+            };
 
-        saveOrderToFirebase(order);
-        alert('✅ Order added successfully!');
-        document.getElementById('orderForm').reset();
-        document.getElementById('quantity').value = 1;
-        updatePrice();
-    });
+            saveOrderToFirebase(order);
+            alert('✅ Order added successfully!');
+            orderForm.reset();
+            document.getElementById('quantity').value = 1;
+            updatePrice();
+        });
+    }
 
-    // Expense form
-    document.getElementById('expenseForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        const expense = {
-            id: Date.now(),
-            description: document.getElementById('expenseDesc').value,
-            amount: parseFloat(document.getElementById('expenseAmount').value),
-            date: document.getElementById('expenseDate').value
-        };
+    const expenseForm = document.getElementById('expenseForm');
+    if (expenseForm) {
+        expenseForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const expense = {
+                id: Date.now(),
+                description: document.getElementById('expenseDesc').value,
+                amount: parseFloat(document.getElementById('expenseAmount').value),
+                date: document.getElementById('expenseDate').value
+            };
 
-        saveExpenseToFirebase(expense);
-        document.getElementById('expenseForm').reset();
-    });
+            saveExpenseToFirebase(expense);
+            alert('✅ Expense added successfully!');
+            expenseForm.reset();
+        });
+    }
 }
 
+// ========== SECTION NAVIGATION ==========
 function showSection(sectionId) {
     document.querySelectorAll('.section').forEach(section => {
         section.classList.remove('active');
     });
     
-    document.getElementById(sectionId).classList.add('active');
+    const targetSection = document.getElementById(sectionId);
+    if (targetSection) targetSection.classList.add('active');
     
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
     });
     
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
+    document.querySelectorAll('.nav-link').forEach(link => {
         if (link.getAttribute('href') === '#' + sectionId) {
             link.classList.add('active');
         }
@@ -286,88 +291,111 @@ function updateAllOrderDisplays() {
     displayOrders('Refund', 'refundList');
 }
 
+// ========== ORDER FORM FUNCTIONS ==========
 function incrementQty() {
     const qtyInput = document.getElementById('quantity');
-    qtyInput.value = parseInt(qtyInput.value) + 1;
-    calculateTotal();
+    if (qtyInput) {
+        qtyInput.value = parseInt(qtyInput.value) + 1;
+        calculateTotal();
+    }
 }
 
 function decrementQty() {
     const qtyInput = document.getElementById('quantity');
-    if (parseInt(qtyInput.value) > 1) {
+    if (qtyInput && parseInt(qtyInput.value) > 1) {
         qtyInput.value = parseInt(qtyInput.value) - 1;
         calculateTotal();
     }
 }
 
 function calculateTotal() {
-    const quantity = parseInt(document.getElementById('quantity').value) || 1;
-    const unitPrice = parseFloat(document.getElementById('unitPrice').value) || 0;
-    const unitCost = parseFloat(document.getElementById('unitCost').value) || 0;
+    const quantity = parseInt(document.getElementById('quantity')?.value) || 1;
+    const unitPrice = parseFloat(document.getElementById('unitPrice')?.value) || 0;
+    const unitCost = parseFloat(document.getElementById('unitCost')?.value) || 0;
     
-    document.getElementById('totalPrice').value = (unitPrice * quantity).toFixed(2);
-    document.getElementById('totalCost').value = (unitCost * quantity).toFixed(2);
+    const totalPriceInput = document.getElementById('totalPrice');
+    const totalCostInput = document.getElementById('totalCost');
+    
+    if (totalPriceInput) totalPriceInput.value = (unitPrice * quantity).toFixed(2);
+    if (totalCostInput) totalCostInput.value = (unitCost * quantity).toFixed(2);
 }
 
 function toggleCustomPrice() {
-    const orderType = document.getElementById('orderType').value;
+    const orderType = document.getElementById('orderType')?.value;
     const standardSection = document.getElementById('standardFrameSection');
     const customSection = document.getElementById('customPriceSection');
     
     if (orderType === 'custom') {
-        standardSection.style.display = 'none';
-        customSection.style.display = 'block';
-        document.getElementById('frameType').value = '';
-        document.getElementById('frameSize').value = '';
+        if (standardSection) standardSection.style.display = 'none';
+        if (customSection) customSection.style.display = 'block';
+        const frameType = document.getElementById('frameType');
+        const frameSize = document.getElementById('frameSize');
+        if (frameType) frameType.value = '';
+        if (frameSize) frameSize.value = '';
     } else {
-        standardSection.style.display = 'block';
-        customSection.style.display = 'none';
-        document.getElementById('customPrice').value = '';
-        document.getElementById('customCost').value = '';
-        document.getElementById('customFrameDesc').value = '';
+        if (standardSection) standardSection.style.display = 'block';
+        if (customSection) customSection.style.display = 'none';
+        const customPrice = document.getElementById('customPrice');
+        const customCost = document.getElementById('customCost');
+        const customFrameDesc = document.getElementById('customFrameDesc');
+        if (customPrice) customPrice.value = '';
+        if (customCost) customCost.value = '';
+        if (customFrameDesc) customFrameDesc.value = '';
     }
     updatePrice();
 }
 
 function updatePrice() {
-    const orderType = document.getElementById('orderType').value;
+    const orderType = document.getElementById('orderType')?.value;
     
     if (orderType === 'standard') {
-        const frameType = document.getElementById('frameType').value;
-        const frameSize = document.getElementById('frameSize').value;
+        const frameType = document.getElementById('frameType')?.value;
+        const frameSize = document.getElementById('frameSize')?.value;
         
         if (frameType && frameSize) {
             const item = priceList.find(p => p.type === frameType && p.size === frameSize);
             if (item) {
-                document.getElementById('unitPrice').value = item.price;
-                document.getElementById('unitCost').value = item.cost;
+                const unitPriceInput = document.getElementById('unitPrice');
+                const unitCostInput = document.getElementById('unitCost');
+                if (unitPriceInput) unitPriceInput.value = item.price;
+                if (unitCostInput) unitCostInput.value = item.cost;
                 calculateTotal();
             }
         } else {
-            document.getElementById('unitPrice').value = '';
-            document.getElementById('unitCost').value = '';
-            document.getElementById('totalPrice').value = '';
-            document.getElementById('totalCost').value = '';
+            const unitPriceInput = document.getElementById('unitPrice');
+            const unitCostInput = document.getElementById('unitCost');
+            const totalPriceInput = document.getElementById('totalPrice');
+            const totalCostInput = document.getElementById('totalCost');
+            if (unitPriceInput) unitPriceInput.value = '';
+            if (unitCostInput) unitCostInput.value = '';
+            if (totalPriceInput) totalPriceInput.value = '';
+            if (totalCostInput) totalCostInput.value = '';
         }
     } else {
-        const customPrice = document.getElementById('customPrice').value;
-        const customCost = document.getElementById('customCost').value;
-        document.getElementById('unitPrice').value = customPrice;
-        document.getElementById('unitCost').value = customCost;
+        const customPrice = document.getElementById('customPrice')?.value;
+        const customCost = document.getElementById('customCost')?.value;
+        const unitPriceInput = document.getElementById('unitPrice');
+        const unitCostInput = document.getElementById('unitCost');
+        if (unitPriceInput) unitPriceInput.value = customPrice;
+        if (unitCostInput) unitCostInput.value = customCost;
         calculateTotal();
     }
 }
 
+// ========== ORDER DISPLAY ==========
 function displayOrders(status, containerId) {
     const container = document.getElementById(containerId);
-    const filteredOrders = orders.filter(order => order.status === status);
+    if (!container) return;
     
+    const filteredOrders = orders.filter(order => order.status === status);
     container.innerHTML = '';
     
     if (filteredOrders.length === 0) {
         container.innerHTML = '<div class="no-data"><p>📦</p><p>No orders found</p></div>';
-        document.getElementById(containerId.replace('List', 'Cost')).textContent = '0.00';
-        document.getElementById(containerId.replace('List', 'Profit')).textContent = '0.00';
+        const costElement = document.getElementById(containerId.replace('List', 'Cost'));
+        const profitElement = document.getElementById(containerId.replace('List', 'Profit'));
+        if (costElement) costElement.textContent = '0.00';
+        if (profitElement) profitElement.textContent = '0.00';
         return;
     }
 
@@ -377,8 +405,8 @@ function displayOrders(status, containerId) {
     filteredOrders.forEach(order => {
         let profit;
         if (status === 'Refund') {
-            profit = -(order.originalTotalCost);
-            totalCost += order.originalTotalCost;
+            profit = -(order.originalTotalCost || order.totalCost);
+            totalCost += (order.originalTotalCost || order.totalCost);
             totalProfit += profit;
         } else {
             profit = order.totalPrice - order.totalCost;
@@ -421,8 +449,10 @@ function displayOrders(status, containerId) {
         container.appendChild(orderCard);
     });
 
-    document.getElementById(containerId.replace('List', 'Cost')).textContent = totalCost.toFixed(2);
-    document.getElementById(containerId.replace('List', 'Profit')).textContent = totalProfit.toFixed(2);
+    const costElement = document.getElementById(containerId.replace('List', 'Cost'));
+    const profitElement = document.getElementById(containerId.replace('List', 'Profit'));
+    if (costElement) costElement.textContent = totalCost.toFixed(2);
+    if (profitElement) profitElement.textContent = totalProfit.toFixed(2);
 }
 
 function getNextStatus(currentStatus) {
@@ -447,8 +477,10 @@ function deleteOrder(firebaseId) {
     }
 }
 
+// ========== EXPENSE DISPLAY ==========
 function displayExpenses() {
     const container = document.getElementById('expensesList');
+    if (!container) return;
     
     if (expenses.length === 0) {
         container.innerHTML = '<div class="no-data"><p>💰</p><p>No expenses recorded</p></div>';
@@ -479,6 +511,7 @@ function deleteExpense(firebaseId) {
     }
 }
 
+// ========== DASHBOARD ==========
 function updateDashboard() {
     const totalOrders = orders.length;
     const totalRevenue = orders.reduce((sum, order) => {
@@ -492,7 +525,7 @@ function updateDashboard() {
     const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
     
     const refundLoss = orders.reduce((sum, order) => {
-        return order.status === 'Refund' ? sum + order.originalTotalCost : sum;
+        return order.status === 'Refund' ? sum + (order.originalTotalCost || order.totalCost) : sum;
     }, 0);
     
     const netProfit = totalRevenue - totalFrameCost - totalExpenses - refundLoss;
@@ -501,14 +534,22 @@ function updateDashboard() {
         order.status === 'Need to Deliver' || order.status === 'Dispatched'
     ).length;
 
-    document.getElementById('totalOrders').textContent = totalOrders;
-    document.getElementById('totalRevenue').textContent = totalRevenue.toFixed(2);
-    document.getElementById('totalFrameCost').textContent = totalFrameCost.toFixed(2);
-    document.getElementById('totalExpenses').textContent = totalExpenses.toFixed(2);
-    document.getElementById('netProfit').textContent = netProfit.toFixed(2);
-    document.getElementById('pendingOrders').textContent = pendingOrders;
+    const totalOrdersEl = document.getElementById('totalOrders');
+    const totalRevenueEl = document.getElementById('totalRevenue');
+    const totalFrameCostEl = document.getElementById('totalFrameCost');
+    const totalExpensesEl = document.getElementById('totalExpenses');
+    const netProfitEl = document.getElementById('netProfit');
+    const pendingOrdersEl = document.getElementById('pendingOrders');
+
+    if (totalOrdersEl) totalOrdersEl.textContent = totalOrders;
+    if (totalRevenueEl) totalRevenueEl.textContent = totalRevenue.toFixed(2);
+    if (totalFrameCostEl) totalFrameCostEl.textContent = totalFrameCost.toFixed(2);
+    if (totalExpensesEl) totalExpensesEl.textContent = totalExpenses.toFixed(2);
+    if (netProfitEl) netProfitEl.textContent = netProfit.toFixed(2);
+    if (pendingOrdersEl) pendingOrdersEl.textContent = pendingOrders;
 }
 
+// ========== ANALYTICS ==========
 function updateAnalytics() {
     updateFrameSizeChart();
     updatePaymentChart();
@@ -529,9 +570,7 @@ function updateFrameSizeChart() {
     const ctx = document.getElementById('frameSizeChart');
     if (!ctx) return;
 
-    if (frameSizeChart) {
-        frameSizeChart.destroy();
-    }
+    if (frameSizeChart) frameSizeChart.destroy();
 
     const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
     
@@ -592,9 +631,7 @@ function updatePaymentChart() {
     const ctx = document.getElementById('paymentChart');
     if (!ctx) return;
 
-    if (paymentChart) {
-        paymentChart.destroy();
-    }
+    if (paymentChart) paymentChart.destroy();
 
     const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
     
@@ -642,9 +679,7 @@ function updateDistrictChart() {
     const ctx = document.getElementById('districtChart');
     if (!ctx) return;
 
-    if (districtChart) {
-        districtChart.destroy();
-    }
+    if (districtChart) districtChart.destroy();
 
     const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
     
@@ -705,9 +740,7 @@ function updateFrameTypeChart() {
     const ctx = document.getElementById('frameTypeChart');
     if (!ctx) return;
 
-    if (frameTypeChart) {
-        frameTypeChart.destroy();
-    }
+    if (frameTypeChart) frameTypeChart.destroy();
 
     const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
     
@@ -755,9 +788,7 @@ function updateCityChart() {
     const ctx = document.getElementById('cityChart');
     if (!ctx) return;
 
-    if (cityChart) {
-        cityChart.destroy();
-    }
+    if (cityChart) cityChart.destroy();
 
     const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
     
@@ -831,14 +862,23 @@ function updateTopSellingStats() {
     const topDistrict = sortedDistricts[0] || ['-', 0];
     const codPercentage = totalCount > 0 ? ((codCount / totalCount) * 100).toFixed(1) : 0;
 
-    document.getElementById('topSize').textContent = topSize[0];
-    document.getElementById('topSizeCount').textContent = `${topSize[1]} orders`;
-    document.getElementById('leastSize').textContent = leastSize[0];
-    document.getElementById('leastSizeCount').textContent = `${leastSize[1]} orders`;
-    document.getElementById('topDistrict').textContent = topDistrict[0];
-    document.getElementById('topDistrictCount').textContent = `${topDistrict[1]} orders`;
-    document.getElementById('codPercentage').textContent = `${codPercentage}%`;
-    document.getElementById('codCount').textContent = `${codCount} orders`;
+    const topSizeEl = document.getElementById('topSize');
+    const topSizeCountEl = document.getElementById('topSizeCount');
+    const leastSizeEl = document.getElementById('leastSize');
+    const leastSizeCountEl = document.getElementById('leastSizeCount');
+    const topDistrictEl = document.getElementById('topDistrict');
+    const topDistrictCountEl = document.getElementById('topDistrictCount');
+    const codPercentageEl = document.getElementById('codPercentage');
+    const codCountEl = document.getElementById('codCount');
+
+    if (topSizeEl) topSizeEl.textContent = topSize[0];
+    if (topSizeCountEl) topSizeCountEl.textContent = `${topSize[1]} orders`;
+    if (leastSizeEl) leastSizeEl.textContent = leastSize[0];
+    if (leastSizeCountEl) leastSizeCountEl.textContent = `${leastSize[1]} orders`;
+    if (topDistrictEl) topDistrictEl.textContent = topDistrict[0];
+    if (topDistrictCountEl) topDistrictCountEl.textContent = `${topDistrict[1]} orders`;
+    if (codPercentageEl) codPercentageEl.textContent = `${codPercentage}%`;
+    if (codCountEl) codCountEl.textContent = `${codCount} orders`;
 }
 
 function updateChartTheme() {
