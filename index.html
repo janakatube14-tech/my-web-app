@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Art Gallery Order Management</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Chart.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Mobile Menu Toggle Button -->
+    <button id="menuToggle" class="menu-toggle" aria-label="Toggle Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+    </button>
+
+    <!-- Theme Toggle Button -->
+    <div class="theme-toggle-container">
+        <button id="themeToggle" class="theme-toggle">🌙</button>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <div class="sidebar" id="sidebar">
+        <!-- Logo Section -->
+        <div class="logo-container">
+            <div class="logo-circle">
+                🎨
+            </div>
+            <h2>Art Gallery</h2>
+        </div>
+        
+        <nav>
+            <a href="#dashboard" class="nav-link active" onclick="showSection('dashboard')">
+                <span class="nav-icon">📊</span>
+                <span>Dashboard</span>
+            </a>
+            <a href="#add-order" class="nav-link" onclick="showSection('add-order')">
+                <span class="nav-icon">➕</span>
+                <span>Add New Order</span>
+            </a>
+            <a href="#need-deliver" class="nav-link" onclick="showSection('need-deliver')">
+                <span class="nav-icon">📦</span>
+                <span>Need to Deliver</span>
+            </a>
+            <a href="#dispatched" class="nav-link" onclick="showSection('dispatched')">
+                <span class="nav-icon">🚚</span>
+                <span>Dispatched</span>
+            </a>
+            <a href="#delivered" class="nav-link" onclick="showSection('delivered')">
+                <span class="nav-icon">✅</span>
+                <span>Delivered</span>
+            </a>
+            <a href="#refund" class="nav-link" onclick="showSection('refund')">
+                <span class="nav-icon">↩️</span>
+                <span>Refund</span>
+            </a>
+            <a href="#expenses" class="nav-link" onclick="showSection('expenses')">
+                <span class="nav-icon">💰</span>
+                <span>Other Expenses</span>
+            </a>
+            <a href="#analytics" class="nav-link" onclick="showSection('analytics')">
+                <span class="nav-icon">📈</span>
+                <span>Sales Analytics</span>
+            </a>
+        </nav>
+    </div>
+
+    <!-- Overlay for mobile menu -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        
+        <!-- Dashboard Section -->
+        <section id="dashboard" class="section active">
+            <h1 class="page-title">Dashboard</h1>
+            
+            <!-- Month Selector -->
+            <div class="month-selector">
+                <label for="monthFilter">Month:</label>
+                <input type="month" id="monthFilter" onchange="filterByMonth()">
+                <button class="btn-secondary" onclick="clearMonthFilter()">Show All</button>
+            </div>
+
+            <!-- Dashboard Cards -->
+            <div class="dashboard-cards">
+                <div class="card card-3d">
+                    <div class="card-icon">📦</div>
+                    <h3>Total Orders</h3>
+                    <p class="stat-value" id="totalOrders">0</p>
+                </div>
+                <div class="card card-3d card-revenue">
+                    <div class="card-icon">💵</div>
+                    <h3>Total Revenue</h3>
+                    <p class="stat-value" id="totalRevenue">Rs. 0</p>
+                </div>
+                <div class="card card-3d card-cost">
+                    <div class="card-icon">🖼️</div>
+                    <h3>Total Frame Cost</h3>
+                    <p class="stat-value" id="totalFrameCost">Rs. 0</p>
+                </div>
+                <div class="card card-3d card-expense">
+                    <div class="card-icon">💸</div>
+                    <h3>Other Expenses</h3>
+                    <p class="stat-value" id="totalExpenses">Rs. 0</p>
+                </div>
+                <div class="card card-3d card-profit">
+                    <div class="card-icon">📊</div>
+                    <h3>Net Profit</h3>
+                    <p class="stat-value profit" id="netProfit">Rs. 0</p>
+                </div>
+                <div class="card card-3d clickable-card card-pending" onclick="showSection('need-deliver')">
+                    <div class="card-icon">⚠️</div>
+                    <h3>Pending Orders</h3>
+                    <p class="stat-value pending" id="pendingOrders">0</p>
+                    <small class="card-action">Click to view →</small>
+                </div>
+            </div>
+
+            <!-- Quick Action Button -->
+            <div class="quick-action">
+                <button class="btn-primary btn-large btn-3d" onclick="showSection('add-order')">➕ Add New Order</button>
+            </div>
+        </section>
+
+        <!-- Add New Order Section -->
+        <section id="add-order" class="section">
+            <h1 class="page-title">Add New Order</h1>
+            <form id="orderForm" class="order-form">
+                
+                <div class="form-group">
+                    <label>Order Number:</label>
+                    <input type="text" id="orderNumber" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Customer Name:</label>
+                        <input type="text" id="customerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone:</label>
+                        <input type="tel" id="phone" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Address Line:</label>
+                    <input type="text" id="addressLine" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nearest City:</label>
+                        <input type="text" id="city" required>
+                    </div>
+                    <div class="form-group">
+                        <label>District:</label>
+                        <input type="text" id="district" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Order Notes (Optional):</label>
+                    <textarea id="orderNotes" rows="2"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Order Type:</label>
+                    <select id="orderType" onchange="toggleCustomPrice()">
+                        <option value="standard">Standard Frame</option>
+                        <option value="custom">Custom Frame</option>
+                    </select>
+                </div>
+
+                <div id="standardFrameSection">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Frame Type:</label>
+                            <select id="frameType" onchange="updatePrice()">
+                                <option value="">Select Frame Type</option>
+                                <option value="Ply Mount">Ply Mount</option>
+                                <option value="Glass Frame">Glass Frame</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Size:</label>
+                            <select id="frameSize" onchange="updatePrice()">
+                                <option value="">Select Size</option>
+                                <option value="4x6">4x6</option>
+                                <option value="6x8">6x8</option>
+                                <option value="8x10">8x10</option>
+                                <option value="8x12">8x12</option>
+                                <option value="10x12">10x12</option>
+                                <option value="10x15">10x15</option>
+                                <option value="12x15">12x15</option>
+                                <option value="12x18">12x18</option>
+                                <option value="16x24">16x24</option>
+                                <option value="20x30">20x30</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="customPriceSection" style="display:none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Custom Frame Description:</label>
+                            <input type="text" id="customFrameDesc" placeholder="e.g., Custom Wood Frame">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Custom Unit Price:</label>
+                            <input type="number" id="customPrice" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Custom Unit Cost:</label>
+                            <input type="number" id="customCost" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Unit Price:</label>
+                        <input type="number" id="unitPrice" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Unit Cost:</label>
+                        <input type="number" id="unitCost" readonly>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Quantity:</label>
+                    <div class="quantity-control">
+                        <button type="button" class="qty-btn" onclick="decrementQty()">-</button>
+                        <input type="number" id="quantity" value="1" min="1" onchange="calculateTotal()">
+                        <button type="button" class="qty-btn" onclick="incrementQty()">+</button>
+                    </div>
+                </div>
+
+                <div class="form-row total-section">
+                    <div class="form-group">
+                        <label>Total Price:</label>
+                        <input type="number" id="totalPrice" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Total Cost:</label>
+                        <input type="number" id="totalCost" readonly>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Date:</label>
+                    <input type="date" id="orderDate" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Status:</label>
+                        <select id="orderStatus">
+                            <option value="Need to Deliver">Need to Deliver</option>
+                            <option value="Dispatched">Dispatched</option>
+                            <option value="Delivered">Delivered</option>
+                            <option value="Refund">Refund</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Method:</label>
+                        <select id="paymentMethod">
+                            <option value="COD">COD (Cash on Delivery)</option>
+                            <option value="Bank Deposit">Bank Deposit</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary btn-3d">Add Order</button>
+            </form>
+        </section>
+
+        <!-- Need to Deliver Section -->
+        <section id="need-deliver" class="section">
+            <div class="content-with-sidebar">
+                <div class="main-content-area">
+                    <h1 class="page-title">📦 Need to Deliver</h1>
+                    <div id="needDeliverList" class="order-list"></div>
+                </div>
+                
+                <div class="totals-sidebar">
+                    <div class="totals-box-sticky">
+                        <h3>Totals</h3>
+                        <div class="total-item">
+                            <span>Total Cost:</span>
+                            <span class="total-value">Rs. <span id="needDeliverCost">0</span></span>
+                        </div>
+                        <div class="total-item">
+                            <span>Total Profit:</span>
+                            <span class="total-value profit-value">Rs. <span id="needDeliverProfit">0</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dispatched Section -->
+        <section id="dispatched" class="section">
+            <div class="content-with-sidebar">
+                <div class="main-content-area">
+                    <h1 class="page-title">🚚 Dispatched</h1>
+                    <div id="dispatchedList" class="order-list"></div>
+                </div>
+                
+                <div class="totals-sidebar">
+                    <div class="totals-box-sticky">
+                        <h3>Totals</h3>
+                        <div class="total-item">
+                            <span>Total Cost:</span>
+                            <span class="total-value">Rs. <span id="dispatchedCost">0</span></span>
+                        </div>
+                        <div class="total-item">
+                            <span>Total Profit:</span>
+                            <span class="total-value profit-value">Rs. <span id="dispatchedProfit">0</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Delivered Section -->
+        <section id="delivered" class="section">
+            <div class="content-with-sidebar">
+                <div class="main-content-area">
+                    <h1 class="page-title">✅ Delivered</h1>
+                    <div id="deliveredList" class="order-list"></div>
+                </div>
+                
+                <div class="totals-sidebar">
+                    <div class="totals-box-sticky">
+                        <h3>Totals</h3>
+                        <div class="total-item">
+                            <span>Total Cost:</span>
+                            <span class="total-value">Rs. <span id="deliveredCost">0</span></span>
+                        </div>
+                        <div class="total-item">
+                            <span>Total Profit:</span>
+                            <span class="total-value profit-value">Rs. <span id="deliveredProfit">0</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Refund Section -->
+        <section id="refund" class="section">
+            <div class="content-with-sidebar">
+                <div class="main-content-area">
+                    <h1 class="page-title">↩️ Refund</h1>
+                    <div id="refundList" class="order-list"></div>
+                </div>
+                
+                <div class="totals-sidebar">
+                    <div class="totals-box-sticky">
+                        <h3>Totals</h3>
+                        <div class="total-item">
+                            <span>Total Cost (Loss):</span>
+                            <span class="total-value loss-value">Rs. <span id="refundCost">0</span></span>
+                        </div>
+                        <div class="total-item">
+                            <span>Total Profit (Loss):</span>
+                            <span class="total-value loss-value">Rs. <span id="refundProfit">0</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Other Expenses Section -->
+        <section id="expenses" class="section">
+            <h1 class="page-title">💰 Other Expenses</h1>
+            <form id="expenseForm" class="expense-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Expense Name:</label>
+                        <input type="text" id="expenseName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Cost:</label>
+                        <input type="number" id="expenseCost" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Date:</label>
+                        <input type="date" id="expenseDate" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary btn-3d">Add Expense</button>
+            </form>
+            <div id="expenseList" class="expense-list"></div>
+        </section>
+
+        <!-- Sales Analytics Section -->
+        <section id="analytics" class="section">
+            <h1 class="page-title">📈 Sales Analytics</h1>
+            
+            <div class="analytics-summary">
+                <div class="card card-3d">
+                    <h3>Top Selling Size</h3>
+                    <p class="stat-value" id="topSize">-</p>
+                    <small id="topSizeQty">0 orders</small>
+                </div>
+                <div class="card card-3d">
+                    <h3>Least Selling Size</h3>
+                    <p class="stat-value" id="leastSize">-</p>
+                    <small id="leastSizeQty">0 orders</small>
+                </div>
+                <div class="card card-3d">
+                    <h3>Top District</h3>
+                    <p class="stat-value" id="topDistrict">-</p>
+                    <small id="topDistrictQty">0 orders</small>
+                </div>
+                <div class="card card-3d">
+                    <h3>COD Orders</h3>
+                    <p class="stat-value" id="codPercentage">0%</p>
+                    <small id="codCount">0 orders</small>
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-box">
+                    <h3>Frame Size Sales Performance</h3>
+                    <canvas id="frameSizeChart"></canvas>
+                </div>
+
+                <div class="chart-box small-chart">
+                    <h3>Payment Methods</h3>
+                    <canvas id="paymentChart"></canvas>
+                </div>
+
+                <div class="chart-box small-chart">
+                    <h3>Top 5 Districts</h3>
+                    <canvas id="districtChart"></canvas>
+                </div>
+
+                <div class="chart-box small-chart">
+                    <h3>Frame Types</h3>
+                    <canvas id="frameTypeChart"></canvas>
+                </div>
+
+                <div class="chart-box small-chart">
+                    <h3>Top 5 Cities</h3>
+                    <canvas id="cityChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <!-- Authentication Check -->
+    <script>
+        // Check if user is logged in
+        if (localStorage.getItem('isLoggedIn') !== 'true') {
+            window.location.href = 'login.html';
+        }
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCuZkofK0aYfmHa1lH4GgllOw7oaD8udRQ",
+  authDomain: "art-gallery-sales.firebaseapp.com",
+  projectId: "art-gallery-sales",
+  storageBucket: "art-gallery-sales.firebasestorage.app",
+  messagingSenderId: "1039842849967",
+  appId: "1:1039842849967:web:6c602cc9424a8c3aea905a"
+};
+    </script>
+
+    <script src="script.js"></script>
+</body>
+</html>
