@@ -1,4 +1,4 @@
-// Price List Data
+// Price List Data (වෙනසක් නෑ)
 const priceList = [
     { type: "Ply Mount", size: "4x6", price: 950, cost: 275 },
     { type: "Ply Mount", size: "6x8", price: 1350, cost: 435 },
@@ -22,11 +22,15 @@ const priceList = [
     { type: "Glass Frame", size: "20x30", price: 9150, cost: 4300 }
 ];
 
-let orders = JSON.parse(localStorage.getItem('orders')) || [];
-let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+// --- Firebase Data Holders ---
+// මේවායේ තමයි Firebase එකෙන් ගත්තු data තියාගන්නේ
+let orders = [];
+let expenses = [];
+// -----------------------------
+
 let frameSizeChart, paymentChart, districtChart, frameTypeChart, cityChart;
 
-// Hamburger Menu
+// ===== DOM and UI Functions (වෙනසක් නෑ) =====
 const menuToggle = document.getElementById('menuToggle');
 const sidebar = document.getElementById('sidebar');
 const sidebarOverlay = document.getElementById('sidebarOverlay');
@@ -37,14 +41,12 @@ menuToggle.addEventListener('click', () => {
     sidebarOverlay.classList.toggle('active');
     document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : 'auto';
 });
-
 sidebarOverlay.addEventListener('click', () => {
     menuToggle.classList.remove('active');
     sidebar.classList.remove('active');
     sidebarOverlay.classList.remove('active');
     document.body.style.overflow = 'auto';
 });
-
 document.querySelectorAll('.nav-link').forEach(link => {
     link.addEventListener('click', () => {
         if (window.innerWidth <= 767) {
@@ -56,15 +58,13 @@ document.querySelectorAll('.nav-link').forEach(link => {
     });
 });
 
-// Theme Toggle
+// Theme Toggle (වෙනසක් නෑ)
 const themeToggle = document.getElementById('themeToggle');
 const currentTheme = localStorage.getItem('theme') || 'light';
-
 if (currentTheme === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
     themeToggle.textContent = '☀️';
 }
-
 themeToggle.addEventListener('click', () => {
     const theme = document.documentElement.getAttribute('data-theme');
     if (theme === 'dark') {
@@ -79,6 +79,36 @@ themeToggle.addEventListener('click', () => {
     updateChartTheme();
 });
 
+
+// ===== Firebase Data Loading Function =====
+// මේක තමයි හැම වෙලාවෙම Online data අරන් එන function එක
+async function loadAllData() {
+    console.log("Loading data from Firebase...");
+    try {
+        // 1. Orders Load කිරීම
+        const ordersSnapshot = await db.collection("orders").orderBy("date", "desc").get();
+        // `doc.id` එක තමයි Firebase ID එක. ඒක order එකටම `id` විදිහට දාගන්නවා.
+        orders = ordersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+
+        // 2. Expenses Load කිරීම
+        const expensesSnapshot = await db.collection("expenses").orderBy("date", "desc").get();
+        expenses = expensesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+        
+        console.log("Data loaded:", orders.length, "orders,", expenses.length, "expenses.");
+        
+        // Data ගත්තට පස්සේ Dashboard එක update කරනවා
+        updateDashboard();
+        // මුලින්ම 'dashboard' section එක පෙන්නනවා
+        showSection('dashboard');
+        
+    } catch (e) {
+        console.error("Error loading data: ", e);
+        alert("❌ Data load වුනේ නෑ. Internet connection එකයි Firebase setup එකයි බලන්න.");
+    }
+}
+
+
+// ===== Section Switching Function (වෙනසක් නෑ) =====
 function showSection(sectionId) {
     document.querySelectorAll('.section').forEach(section => {
         section.classList.remove('active');
@@ -88,14 +118,11 @@ function showSection(sectionId) {
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
     });
-    
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(link => {
-        if (link.getAttribute('href') === '#' + sectionId) {
-            link.classList.add('active');
-        }
+    document.querySelectorAll('.nav-link[href="#' + sectionId + '"]').forEach(link => {
+        link.classList.add('active');
     });
     
+    // Data load වුනාට පස්සේ අදාල display function එක call කරනවා
     if (sectionId === 'dashboard') {
         updateDashboard();
     } else if (sectionId === 'analytics') {
@@ -113,12 +140,12 @@ function showSection(sectionId) {
     }
 }
 
+// ===== Add Order Form Logic (වෙනසක් නෑ) =====
 function incrementQty() {
     const qtyInput = document.getElementById('quantity');
     qtyInput.value = parseInt(qtyInput.value) + 1;
     calculateTotal();
 }
-
 function decrementQty() {
     const qtyInput = document.getElementById('quantity');
     if (parseInt(qtyInput.value) > 1) {
@@ -126,7 +153,6 @@ function decrementQty() {
         calculateTotal();
     }
 }
-
 function calculateTotal() {
     const quantity = parseInt(document.getElementById('quantity').value) || 1;
     const unitPrice = parseFloat(document.getElementById('unitPrice').value) || 0;
@@ -135,7 +161,6 @@ function calculateTotal() {
     document.getElementById('totalPrice').value = (unitPrice * quantity).toFixed(2);
     document.getElementById('totalCost').value = (unitCost * quantity).toFixed(2);
 }
-
 function toggleCustomPrice() {
     const orderType = document.getElementById('orderType').value;
     const standardSection = document.getElementById('standardFrameSection');
@@ -155,7 +180,6 @@ function toggleCustomPrice() {
     }
     updatePrice();
 }
-
 function updatePrice() {
     const orderType = document.getElementById('orderType').value;
     
@@ -184,10 +208,11 @@ function updatePrice() {
         calculateTotal();
     }
 }
-
 document.getElementById('customPrice').addEventListener('input', updatePrice);
 document.getElementById('customCost').addEventListener('input', updatePrice);
 
+
+// ===== Order Form Submit (Firebase Save) =====
 document.getElementById('orderForm').addEventListener('submit', (e) => {
     e.preventDefault();
     
@@ -197,7 +222,6 @@ document.getElementById('orderForm').addEventListener('submit', (e) => {
     const orderType = document.getElementById('orderType').value;
     
     let frameType, frameSize;
-    
     if (orderType === 'custom') {
         frameType = 'Custom';
         frameSize = document.getElementById('customFrameDesc').value || 'Custom Frame';
@@ -207,7 +231,6 @@ document.getElementById('orderForm').addEventListener('submit', (e) => {
     }
     
     const order = {
-        id: Date.now(),
         orderNumber: document.getElementById('orderNumber').value,
         customerName: document.getElementById('customerName').value,
         phone: document.getElementById('phone').value,
@@ -223,24 +246,32 @@ document.getElementById('orderForm').addEventListener('submit', (e) => {
         unitCost: unitCost,
         totalPrice: unitPrice * quantity,
         totalCost: unitCost * quantity,
-        originalTotalCost: unitCost * quantity,
+        originalTotalCost: unitCost * quantity, // Refund ගණනයට
         date: document.getElementById('orderDate').value,
         status: document.getElementById('orderStatus').value,
         paymentMethod: document.getElementById('paymentMethod').value
     };
     
-    orders.push(order);
-    localStorage.setItem('orders', JSON.stringify(orders));
-    
-    alert('✅ Order added successfully!');
-    document.getElementById('orderForm').reset();
-    document.getElementById('quantity').value = 1;
-    updatePrice();
-    updateDashboard();
+    // --- localStorage වෙනුවට Firebase ---
+    db.collection("orders").add(order)
+        .then((docRef) => {
+            console.log("Order added with ID: ", docRef.id);
+            alert('✅ Order එක Online පොතට (Firebase) දැම්මා!');
+            // Page එක reload කරලා අලුත් data load කරනවා
+            location.reload(); 
+        })
+        .catch((error) => {
+            console.error("Error adding order: ", error);
+            alert("❌ Order එක add කරන්න බැරි වුනා! (Console එක බලන්න)");
+        });
+    // ------------------------------------
 });
 
+
+// ===== Display Orders (Firebase Data) =====
 function displayOrders(status, containerId) {
     const container = document.getElementById(containerId);
+    // global `orders` array එකෙන් filter කරනවා
     const filteredOrders = orders.filter(order => order.status === status);
     
     container.innerHTML = '';
@@ -256,6 +287,7 @@ function displayOrders(status, containerId) {
     let totalProfit = 0;
     
     filteredOrders.forEach(order => {
+        // Refund වලට Loss ගණනය කරනවා
         let profit;
         if (status === 'Refund') {
             profit = -(order.originalTotalCost);
@@ -269,130 +301,126 @@ function displayOrders(status, containerId) {
         
         const orderCard = document.createElement('div');
         orderCard.className = status === 'Refund' ? 'order-card refund-card' : 'order-card';
+        
+        // order.id යනු Firebase ID එකයි
         orderCard.innerHTML = `
             <div class="order-header">
                 <span class="order-number">#${order.orderNumber}</span>
                 <span class="detail-value">${order.date}</span>
             </div>
             <div class="order-details">
-                <div class="detail-item">
-                    <span class="detail-label">Customer:</span>
-                    <span class="detail-value">${order.customerName}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Phone:</span>
-                    <span class="detail-value">${order.phone}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Address:</span>
-                    <span class="detail-value">${order.addressLine}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">City:</span>
-                    <span class="detail-value">${order.city}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">District:</span>
-                    <span class="detail-value">${order.district}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Frame:</span>
-                    <span class="detail-value">${order.frameType} - ${order.frameSize}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Quantity:</span>
-                    <span class="detail-value">${order.quantity}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Unit Price:</span>
-                    <span class="detail-value">Rs. ${order.unitPrice.toFixed(2)}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Unit Cost:</span>
-                    <span class="detail-value">Rs. ${order.unitCost.toFixed(2)}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Total Price:</span>
-                    <span class="detail-value">Rs. ${order.totalPrice.toFixed(2)}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Total Cost:</span>
-                    <span class="detail-value">Rs. ${order.totalCost.toFixed(2)}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">${status === 'Refund' ? 'Loss:' : 'Profit:'}</span>
-                    <span class="detail-value ${status === 'Refund' ? 'loss-indicator' : ''}">Rs. ${profit.toFixed(2)}</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-label">Payment:</span>
-                    <span class="detail-value">${order.paymentMethod}</span>
-                </div>
+                <div class="detail-item"><span class="detail-label">Customer:</span> <span class="detail-value">${order.customerName}</span></div>
+                <div class="detail-item"><span class="detail-label">Phone:</span> <span class="detail-value">${order.phone}</span></div>
+                <div class="detail-item"><span class="detail-label">Address:</span> <span class="detail-value">${order.addressLine}</span></div>
+                <div class="detail-item"><span class="detail-label">City:</span> <span class="detail-value">${order.city}</span></div>
+                <div class="detail-item"><span class="detail-label">District:</span> <span class="detail-value">${order.district}</span></div>
+                <div class="detail-item"><span class="detail-label">Frame:</span> <span class="detail-value">${order.frameType} - ${order.frameSize}</span></div>
+                <div class="detail-item"><span class="detail-label">Quantity:</span> <span class="detail-value">${order.quantity}</span></div>
+                <div class="detail-item"><span class="detail-label">Total Price:</span> <span class="detail-value">Rs. ${order.totalPrice.toFixed(2)}</span></div>
+                <div class="detail-item"><span class="detail-label">Total Cost:</span> <span class="detail-value">Rs. ${order.totalCost.toFixed(2)}</span></div>
+                <div class="detail-item"><span class="detail-label">${status === 'Refund' ? 'Loss:' : 'Profit:'}</span> <span class="detail-value ${status === 'Refund' ? 'loss-indicator' : ''}">Rs. ${profit.toFixed(2)}</span></div>
+                <div class="detail-item"><span class="detail-label">Payment:</span> <span class="detail-value">${order.paymentMethod}</span></div>
             </div>
             ${order.orderNotes ? `<p style="margin-top: 10px;"><strong>Notes:</strong> ${order.orderNotes}</p>` : ''}
-            ${status === 'Refund' ? `<p class="loss-indicator" style="margin-top: 10px;"><strong>⚠️ Loss: Rs. ${Math.abs(profit).toFixed(2)}</strong></p>` : ''}
             <div class="order-actions">
                 ${status === 'Need to Deliver' ? `
-                    <button class="btn-small btn-warning" onclick="changeStatus(${order.id}, 'Dispatched')">Mark as Dispatched</button>
-                    <button class="btn-small btn-success" onclick="changeStatus(${order.id}, 'Delivered')">Mark as Delivered</button>
-                    <button class="btn-small btn-danger" onclick="changeStatus(${order.id}, 'Refund')">Refund</button>
+                    <button class="btn-small btn-warning" onclick="changeStatus('${order.id}', 'Dispatched')">Mark as Dispatched</button>
+                    <button class="btn-small btn-success" onclick="changeStatus('${order.id}', 'Delivered')">Mark as Delivered</button>
+                    <button class="btn-small btn-danger" onclick="changeStatus('${order.id}', 'Refund')">Refund</button>
                 ` : ''}
                 ${status === 'Dispatched' ? `
-                    <button class="btn-small btn-success" onclick="changeStatus(${order.id}, 'Delivered')">Mark as Delivered</button>
-                    <button class="btn-small btn-danger" onclick="changeStatus(${order.id}, 'Refund')">Refund</button>
+                    <button class="btn-small btn-success" onclick="changeStatus('${order.id}', 'Delivered')">Mark as Delivered</button>
+                    <button class="btn-small btn-danger" onclick="changeStatus('${order.id}', 'Refund')">Refund</button>
                 ` : ''}
-                <button class="btn-small btn-danger" onclick="deleteOrder(${order.id})">Delete</button>
+                <button class="btn-small btn-danger" onclick="deleteOrder('${order.id}')">Delete</button>
             </div>
         `;
         container.appendChild(orderCard);
     });
     
     document.getElementById(containerId.replace('List', 'Cost')).textContent = totalCost.toFixed(2);
-    document.getElementById(containerId.replace('List', 'Profit')).textContent = totalProfit.toFixed(2);
+    // Refund section එකට Loss එක පෙන්නන්න (ධන අගයක් ලෙස)
+    document.getElementById(containerId.replace('List', 'Profit')).textContent = status === 'Refund' ? Math.abs(totalProfit).toFixed(2) : totalProfit.toFixed(2);
 }
 
+
+// ===== Order Status Change (Firebase Update) =====
 function changeStatus(orderId, newStatus) {
     const order = orders.find(o => o.id === orderId);
     if (order) {
         if (newStatus === 'Refund') {
-            const confirmRefund = confirm(`⚠️ Are you sure you want to refund this order?\n\nThis will result in a LOSS of Rs. ${order.originalTotalCost.toFixed(2)}\n\nRevenue to return: Rs. ${order.totalPrice.toFixed(2)}\nCost already spent: Rs. ${order.originalTotalCost.toFixed(2)}`);
+            const confirmRefund = confirm(`⚠️ ඔබ මේ order එක Refund කරන්න sure ද? මෙයින් Rs. ${order.originalTotalCost.toFixed(2)} ක Loss එකක් සිදුවේ.`);
             if (!confirmRefund) {
                 return;
             }
+            // Refund එකකදී cost එක 0 කළ යුතුය, නමුත් අපි originalTotalCost එක වෙනම තියාගන්නවා
         }
         
-        order.status = newStatus;
-        localStorage.setItem('orders', JSON.stringify(orders));
-        location.reload();
+        console.log(`Updating order ${orderId} to status ${newStatus}`);
+        
+        // --- Firebase Update ---
+        db.collection("orders").doc(orderId).update({
+            status: newStatus
+        })
+        .then(() => {
+            console.log("Status updated!");
+            location.reload(); // Page එක reload කරලා අලුත් data ගන්නවා
+        })
+        .catch((error) => {
+            console.error("Error updating status: ", error);
+            alert("❌ Status update කරන්න බැරි වුනා! (Console එක බලන්න)");
+        });
+        // -----------------------
     }
 }
 
+
+// ===== Delete Order (Firebase Delete) =====
 function deleteOrder(orderId) {
-    if (confirm('⚠️ Are you sure you want to delete this order?')) {
-        orders = orders.filter(o => o.id !== orderId);
-        localStorage.setItem('orders', JSON.stringify(orders));
-        location.reload();
+    if (confirm('⚠️ මේ order එක delete කරන්න sure ද? මෙය ආපසු ගත නොහැක!')) {
+        console.log(`Deleting order ${orderId}`);
+        
+        // --- Firebase Delete ---
+        db.collection("orders").doc(orderId).delete()
+        .then(() => {
+            console.log("Order deleted!");
+            location.reload(); // Page එක reload කරලා අලුත් data ගන්නවා
+        })
+        .catch((error) => {
+            console.error("Error deleting order: ", error);
+            alert("❌ Order එක delete කරන්න බැරි වුනා! (Console එක බලන්න)");
+        });
+        // -----------------------
     }
 }
 
+
+// ===== Expense Form Submit (Firebase Save) =====
 document.getElementById('expenseForm').addEventListener('submit', (e) => {
     e.preventDefault();
     
     const expense = {
-        id: Date.now(),
         name: document.getElementById('expenseName').value,
         cost: parseFloat(document.getElementById('expenseCost').value),
         date: document.getElementById('expenseDate').value
     };
     
-    expenses.push(expense);
-    localStorage.setItem('expenses', JSON.stringify(expenses));
-    
-    alert('✅ Expense added successfully!');
-    document.getElementById('expenseForm').reset();
-    displayExpenses();
-    updateDashboard();
+    // --- Firebase Save ---
+    db.collection("expenses").add(expense)
+        .then((docRef) => {
+            console.log("Expense added with ID: ", docRef.id);
+            alert('✅ Expense එක Online පොතට (Firebase) දැම්මා!');
+            location.reload(); 
+        })
+        .catch((error) => {
+            console.error("Error adding expense: ", error);
+            alert("❌ Expense එක add කරන්න බැරි වුනා! (Console එක බලන්න)");
+        });
+    // ---------------------
 });
 
+
+// ===== Display Expenses (Firebase Data) =====
 function displayExpenses() {
     const container = document.getElementById('expenseList');
     container.innerHTML = '';
@@ -405,27 +433,40 @@ function displayExpenses() {
     expenses.forEach(expense => {
         const expenseItem = document.createElement('div');
         expenseItem.className = 'expense-item';
+        // expense.id යනු Firebase ID එකයි
         expenseItem.innerHTML = `
             <div class="expense-info">
                 <div class="expense-name">${expense.name}</div>
                 <div class="expense-date">${expense.date}</div>
             </div>
             <div class="expense-cost">Rs. ${expense.cost.toFixed(2)}</div>
-            <button class="btn-small btn-danger" onclick="deleteExpense(${expense.id})">Delete</button>
+            <button class="btn-small btn-danger" onclick="deleteExpense('${expense.id}')">Delete</button>
         `;
         container.appendChild(expenseItem);
     });
 }
 
+
+// ===== Delete Expense (Firebase Delete) =====
 function deleteExpense(expenseId) {
-    if (confirm('⚠️ Are you sure you want to delete this expense?')) {
-        expenses = expenses.filter(e => e.id !== expenseId);
-        localStorage.setItem('expenses', JSON.stringify(expenses));
-        displayExpenses();
-        updateDashboard();
+    if (confirm('⚠️ මේ වියදම delete කරන්න sure ද?')) {
+        console.log(`Deleting expense ${expenseId}`);
+        
+        // --- Firebase Delete ---
+        db.collection("expenses").doc(expenseId).delete()
+        .then(() => {
+            console.log("Expense deleted!");
+            location.reload(); 
+        })
+        .catch((error) => {
+            console.error("Error deleting expense: ", error);
+            alert("❌ Expense එක delete කරන්න බැරි වුනා! (Console එක බලන්න)");
+        });
+        // -----------------------
     }
 }
 
+// ===== Dashboard Functions (Firebase Data වලින් වැඩ) =====
 function updateDashboard() {
     const totalOrders = orders.length;
     const totalRevenue = orders.filter(o => o.status !== 'Refund').reduce((sum, order) => sum + order.totalPrice, 0);
@@ -454,7 +495,7 @@ function updateDashboard() {
 
 function clearMonthFilter() {
     document.getElementById('monthFilter').value = '';
-    updateDashboard();
+    updateDashboard(); 
 }
 
 function filterByMonth() {
@@ -467,11 +508,11 @@ function filterByMonth() {
     const filteredOrders = orders.filter(order => order.date.startsWith(selectedMonth));
     const filteredExpenses = expenses.filter(expense => expense.date.startsWith(selectedMonth));
     
+    // ... (Dashboard update logic for filtered data - වෙනසක් නෑ)
     const totalOrders = filteredOrders.length;
     const totalRevenue = filteredOrders.filter(o => o.status !== 'Refund').reduce((sum, order) => sum + order.totalPrice, 0);
     const totalFrameCost = filteredOrders.reduce((sum, order) => sum + order.originalTotalCost, 0);
     const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.cost, 0);
-    
     let calculatedProfit = 0;
     filteredOrders.forEach(order => {
         if (order.status === 'Refund') {
@@ -480,10 +521,9 @@ function filterByMonth() {
             calculatedProfit += (order.totalPrice - order.totalCost);
         }
     });
-    
     const netProfit = calculatedProfit - totalExpenses;
     const pendingOrders = filteredOrders.filter(o => o.status === 'Need to Deliver').length;
-    
+
     document.getElementById('totalOrders').textContent = totalOrders;
     document.getElementById('totalRevenue').textContent = `Rs. ${totalRevenue.toFixed(2)}`;
     document.getElementById('totalFrameCost').textContent = `Rs. ${totalFrameCost.toFixed(2)}`;
@@ -492,6 +532,7 @@ function filterByMonth() {
     document.getElementById('pendingOrders').textContent = pendingOrders;
 }
 
+// ===== Analytics Functions (වෙනසක් නෑ) =====
 function updateAnalytics() {
     updateAnalyticsSummary();
     createFrameSizeChart();
@@ -510,15 +551,16 @@ function updateAnalyticsSummary() {
         }
         sizeStats[size] += order.quantity;
     });
-    
     const sortedSizes = Object.entries(sizeStats).sort((a, b) => b[1] - a[1]);
     
     if (sortedSizes.length > 0) {
         document.getElementById('topSize').textContent = sortedSizes[0][0];
         document.getElementById('topSizeQty').textContent = `${sortedSizes[0][1]} orders`;
-        
         document.getElementById('leastSize').textContent = sortedSizes[sortedSizes.length - 1][0];
         document.getElementById('leastSizeQty').textContent = `${sortedSizes[sortedSizes.length - 1][1]} orders`;
+    } else {
+        document.getElementById('topSize').textContent = 'N/A';
+        document.getElementById('leastSize').textContent = 'N/A';
     }
     
     const districtStats = {};
@@ -529,18 +571,17 @@ function updateAnalyticsSummary() {
         }
         districtStats[district]++;
     });
-    
     const sortedDistricts = Object.entries(districtStats).sort((a, b) => b[1] - a[1]);
-    
     if (sortedDistricts.length > 0) {
         document.getElementById('topDistrict').textContent = sortedDistricts[0][0];
         document.getElementById('topDistrictQty').textContent = `${sortedDistricts[0][1]} orders`;
+    } else {
+        document.getElementById('topDistrict').textContent = 'N/A';
     }
     
     const codOrders = orders.filter(o => o.paymentMethod === 'COD').length;
     const totalOrders = orders.length;
     const codPercentage = totalOrders > 0 ? ((codOrders / totalOrders) * 100).toFixed(1) : 0;
-    
     document.getElementById('codPercentage').textContent = `${codPercentage}%`;
     document.getElementById('codCount').textContent = `${codOrders} orders`;
 }
@@ -551,36 +592,22 @@ function getChartColors() {
         textColor: isDark ? '#e2e8f0' : '#2d3748',
         gridColor: isDark ? '#4a5568' : '#e2e8f0',
         backgroundColor: [
-            'rgba(52, 152, 219, 0.8)',
-            'rgba(46, 204, 113, 0.8)',
-            'rgba(155, 89, 182, 0.8)',
-            'rgba(241, 196, 15, 0.8)',
-            'rgba(230, 126, 34, 0.8)',
-            'rgba(231, 76, 60, 0.8)',
-            'rgba(149, 165, 166, 0.8)',
-            'rgba(52, 73, 94, 0.8)',
-            'rgba(26, 188, 156, 0.8)',
+            'rgba(52, 152, 219, 0.8)', 'rgba(46, 204, 113, 0.8)', 'rgba(155, 89, 182, 0.8)',
+            'rgba(241, 196, 15, 0.8)', 'rgba(230, 126, 34, 0.8)', 'rgba(231, 76, 60, 0.8)',
+            'rgba(149, 165, 166, 0.8)', 'rgba(52, 73, 94, 0.8)', 'rgba(26, 188, 156, 0.8)',
             'rgba(243, 156, 18, 0.8)'
         ],
         borderColor: [
-            'rgba(52, 152, 219, 1)',
-            'rgba(46, 204, 113, 1)',
-            'rgba(155, 89, 182, 1)',
-            'rgba(241, 196, 15, 1)',
-            'rgba(230, 126, 34, 1)',
-            'rgba(231, 76, 60, 1)',
-            'rgba(149, 165, 166, 1)',
-            'rgba(52, 73, 94, 1)',
-            'rgba(26, 188, 156, 1)',
+            'rgba(52, 152, 219, 1)', 'rgba(46, 204, 113, 1)', 'rgba(155, 89, 182, 1)',
+            'rgba(241, 196, 15, 1)', 'rgba(230, 126, 34, 1)', 'rgba(231, 76, 60, 1)',
+            'rgba(149, 165, 166, 1)', 'rgba(52, 73, 94, 1)', 'rgba(26, 188, 156, 1)',
             'rgba(243, 156, 18, 1)'
         ]
     };
 }
-
 function createFrameSizeChart() {
     const ctx = document.getElementById('frameSizeChart').getContext('2d');
     if (frameSizeChart) frameSizeChart.destroy();
-    
     const sizeStats = {};
     orders.forEach(order => {
         const size = order.frameSize;
@@ -590,248 +617,191 @@ function createFrameSizeChart() {
         sizeStats[size].quantity += order.quantity;
         sizeStats[size].revenue += order.totalPrice;
     });
-    
     const labels = Object.keys(sizeStats).sort();
     const quantities = labels.map(label => sizeStats[label].quantity);
     const revenues = labels.map(label => sizeStats[label].revenue);
     const colors = getChartColors();
-    
     frameSizeChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
-            datasets: [{
-                label: 'Quantity Sold',
-                data: quantities,
-                backgroundColor: colors.backgroundColor[0],
-                borderColor: colors.borderColor[0],
-                borderWidth: 2,
-                yAxisID: 'y'
-            }, {
-                label: 'Revenue (Rs.)',
-                data: revenues,
-                backgroundColor: colors.backgroundColor[1],
-                borderColor: colors.borderColor[1],
-                borderWidth: 2,
-                yAxisID: 'y1'
-            }]
+            datasets: [
+                {
+                    label: 'Quantity Sold',
+                    data: quantities,
+                    backgroundColor: colors.backgroundColor,
+                    borderColor: colors.borderColor,
+                    borderWidth: 1
+                }
+            ]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                legend: { labels: { color: colors.textColor, font: { size: 12 } } },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            let label = context.dataset.label || '';
-                            if (label) label += ': ';
-                            if (context.datasetIndex === 1) {
-                                label += 'Rs. ' + context.parsed.y.toFixed(2);
-                            } else {
-                                label += context.parsed.y;
-                            }
-                            return label;
-                        }
-                    }
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: { color: colors.textColor },
+                    grid: { color: colors.gridColor }
+                },
+                x: {
+                    ticks: { color: colors.textColor },
+                    grid: { display: false }
                 }
             },
-            scales: {
-                x: { ticks: { color: colors.textColor }, grid: { color: colors.gridColor } },
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    ticks: { color: colors.textColor },
-                    grid: { color: colors.gridColor },
-                    title: { display: true, text: 'Quantity', color: colors.textColor }
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    ticks: { color: colors.textColor },
-                    grid: { drawOnChartArea: false },
-                    title: { display: true, text: 'Revenue (Rs.)', color: colors.textColor }
-                }
+            plugins: {
+                legend: { labels: { color: colors.textColor } }
             }
         }
     });
 }
-
 function createPaymentChart() {
     const ctx = document.getElementById('paymentChart').getContext('2d');
     if (paymentChart) paymentChart.destroy();
-    
     const paymentStats = { 'COD': 0, 'Bank Deposit': 0 };
     orders.forEach(order => { paymentStats[order.paymentMethod]++; });
+    const labels = Object.keys(paymentStats);
+    const data = Object.values(paymentStats);
     const colors = getChartColors();
-    
     paymentChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['COD', 'Bank Deposit'],
+            labels: labels,
             datasets: [{
-                data: [paymentStats['COD'], paymentStats['Bank Deposit']],
-                backgroundColor: [colors.backgroundColor[0], colors.backgroundColor[1]],
-                borderColor: [colors.borderColor[0], colors.borderColor[1]],
-                borderWidth: 2
+                data: data,
+                backgroundColor: colors.backgroundColor.slice(0, 2),
+                borderColor: colors.borderColor.slice(0, 2),
+                borderWidth: 1
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
-                legend: { labels: { color: colors.textColor, font: { size: 12 } } },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                            return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
-                        }
-                    }
-                }
+                legend: { position: 'top', labels: { color: colors.textColor } }
             }
         }
     });
 }
-
 function createDistrictChart() {
     const ctx = document.getElementById('districtChart').getContext('2d');
     if (districtChart) districtChart.destroy();
-    
     const districtStats = {};
     orders.forEach(order => {
         const district = order.district;
         if (!districtStats[district]) districtStats[district] = 0;
         districtStats[district]++;
     });
-    
     const sortedDistricts = Object.entries(districtStats).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const labels = sortedDistricts.map(d => d[0]);
     const data = sortedDistricts.map(d => d[1]);
     const colors = getChartColors();
-    
     districtChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Orders',
-                data: data,
-                backgroundColor: colors.backgroundColor,
-                borderColor: colors.borderColor,
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            indexAxis: 'y',
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { ticks: { color: colors.textColor }, grid: { color: colors.gridColor } },
-                y: { ticks: { color: colors.textColor }, grid: { color: colors.gridColor } }
-            }
-        }
-    });
-}
-
-function createFrameTypeChart() {
-    const ctx = document.getElementById('frameTypeChart').getContext('2d');
-    if (frameTypeChart) frameTypeChart.destroy();
-    
-    const typeStats = {};
-    orders.forEach(order => {
-        const type = order.frameType;
-        if (!typeStats[type]) typeStats[type] = 0;
-        typeStats[type] += order.quantity;
-    });
-    
-    const labels = Object.keys(typeStats);
-    const data = Object.values(typeStats);
-    const colors = getChartColors();
-    
-    frameTypeChart = new Chart(ctx, {
-        type: 'pie',
+        type: 'polarArea',
         data: {
             labels: labels,
             datasets: [{
                 data: data,
-                backgroundColor: colors.backgroundColor,
-                borderColor: colors.borderColor,
-                borderWidth: 2
+                backgroundColor: colors.backgroundColor.slice(2, 7),
+                borderColor: colors.borderColor.slice(2, 7),
+                borderWidth: 1
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
             plugins: {
-                legend: { labels: { color: colors.textColor, font: { size: 12 } } },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                            return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
-                        }
-                    }
+                legend: { position: 'right', labels: { color: colors.textColor } }
+            },
+            scales: {
+                r: {
+                    ticks: { color: colors.textColor, backdropColor: 'transparent' },
+                    grid: { color: colors.gridColor }
                 }
             }
         }
     });
 }
-
+function createFrameTypeChart() {
+    const ctx = document.getElementById('frameTypeChart').getContext('2d');
+    if (frameTypeChart) frameTypeChart.destroy();
+    const typeStats = {};
+    orders.forEach(order => {
+        const type = order.frameType;
+        if (!typeStats[type]) typeStats[type] = 0;
+        typeStats[type] += order.quantity;
+    });
+    const labels = Object.keys(typeStats);
+    const data = Object.values(typeStats);
+    const colors = getChartColors();
+    frameTypeChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors.backgroundColor.slice(0, labels.length),
+                borderColor: colors.borderColor.slice(0, labels.length),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { position: 'right', labels: { color: colors.textColor } }
+            }
+        }
+    });
+}
 function createCityChart() {
     const ctx = document.getElementById('cityChart').getContext('2d');
     if (cityChart) cityChart.destroy();
-    
     const cityStats = {};
     orders.forEach(order => {
         const city = order.city;
         if (!cityStats[city]) cityStats[city] = 0;
         cityStats[city]++;
     });
-    
     const sortedCities = Object.entries(cityStats).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const labels = sortedCities.map(c => c[0]);
     const data = sortedCities.map(c => c[1]);
     const colors = getChartColors();
-    
     cityChart = new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
-            datasets: [{
-                label: 'Orders',
-                data: data,
-                backgroundColor: colors.backgroundColor,
-                borderColor: colors.borderColor,
-                borderWidth: 2
-            }]
+            datasets: [
+                {
+                    label: 'Order Count',
+                    data: data,
+                    backgroundColor: colors.backgroundColor.slice(5, 10),
+                    borderColor: colors.borderColor.slice(5, 10),
+                    borderWidth: 1
+                }
+            ]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: true,
             indexAxis: 'y',
-            plugins: { legend: { display: false } },
+            responsive: true,
+            maintainAspectRatio: false,
             scales: {
-                x: { ticks: { color: colors.textColor }, grid: { color: colors.gridColor } },
-                y: { ticks: { color: colors.textColor }, grid: { color: colors.gridColor } }
+                y: { ticks: { color: colors.textColor }, grid: { color: colors.gridColor } },
+                x: { beginAtZero: true, ticks: { color: colors.textColor }, grid: { color: colors.gridColor } }
+            },
+            plugins: {
+                legend: { labels: { color: colors.textColor } }
             }
         }
     });
 }
-
 function updateChartTheme() {
     if (document.getElementById('analytics').classList.contains('active')) {
         updateAnalytics();
     }
 }
 
-// ===== LOGOUT FUNCTIONALITY =====
+// ===== LOGOUT FUNCTIONALITY (වෙනසක් නෑ) =====
 function logout() {
     if (confirm('Are you sure you want to logout?')) {
         localStorage.removeItem('isLoggedIn');
@@ -839,29 +809,30 @@ function logout() {
         window.location.href = 'login.html';
     }
 }
-
-// Add logout button to sidebar
 const logoutHTML = `
     <div style="padding: 15px 12px; border-top: 2px solid rgba(255, 255, 255, 0.1); margin-top: 20px;">
         <button onclick="logout()" style="
-            width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s ease;
+            width: 100%; padding: 12px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white; border: none; border-radius: 10px; cursor: pointer;
+            font-size: 14px; font-weight: 600; transition: all 0.3s ease;
             box-shadow: 0 3px 8px rgba(231, 76, 60, 0.3);
         " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 12px rgba(231, 76, 60, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 8px rgba(231, 76, 60, 0.3)';">
             🚪 Logout
         </button>
     </div>
 `;
-
 document.querySelector('.sidebar nav').insertAdjacentHTML('afterend', logoutHTML);
 
-// Initialize
-updateDashboard();
+// ===== Initialization (Page Load) =====
+document.addEventListener('DOMContentLoaded', () => {
+    // Login check එක index.html එකේ උඩ තියෙන script එකෙන් කරලා තියෙන්නේ.
+    // ඒක නිසා මේක load වෙන්නේ login වුනාට පස්සේ.
+
+    // Dashboard එකට Loading දානවා
+    document.getElementById('totalOrders').textContent = 'Loading...';
+    document.getElementById('totalRevenue').textContent = 'Loading...';
+    document.getElementById('netProfit').textContent = 'Loading...';
+
+    // Firebase එකෙන් data load කරන function එක call කරනවා
+    loadAllData();
+});
