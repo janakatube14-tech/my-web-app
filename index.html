@@ -5,25 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Art Gallery Order Management</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Chart.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-    <!-- Mobile Menu Toggle Button -->
     <button id="menuToggle" class="menu-toggle" aria-label="Toggle Menu">
         <span></span>
         <span></span>
         <span></span>
     </button>
 
-    <!-- Theme Toggle Button -->
     <div class="theme-toggle-container">
         <button id="themeToggle" class="theme-toggle">🌙</button>
     </div>
 
-    <!-- Sidebar Navigation -->
     <div class="sidebar" id="sidebar">
-        <!-- Logo Section -->
         <div class="logo-container">
             <img src="logo.png" alt="Art Gallery Logo" class="logo-circle">
             <h2>Art Gallery</h2>
@@ -65,24 +60,11 @@
         </nav>
     </div>
 
-    <!-- Overlay for mobile menu -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <!-- Main Content -->
     <div class="main-content">
-        
-        <!-- Dashboard Section -->
         <section id="dashboard" class="section active">
             <h1 class="page-title">Dashboard</h1>
-            
-            <!-- Month Selector -->
-            <div class="month-selector">
-                <label for="monthFilter">Month:</label>
-                <input type="month" id="monthFilter" onchange="filterByMonth()">
-                <button class="btn-secondary" onclick="clearMonthFilter()">Show All</button>
-            </div>
-
-            <!-- Dashboard Cards -->
             <div class="dashboard-cards">
                 <div class="card card-3d">
                     <div class="card-icon">📦</div>
@@ -116,23 +98,18 @@
                     <small class="card-action">Click to view →</small>
                 </div>
             </div>
-
-            <!-- Quick Action Button -->
             <div class="quick-action">
                 <button class="btn-primary btn-large btn-3d" onclick="showSection('add-order')">➕ Add New Order</button>
             </div>
         </section>
 
-        <!-- Add New Order Section -->
         <section id="add-order" class="section">
             <h1 class="page-title">Add New Order</h1>
             <form id="orderForm" class="order-form">
-                
                 <div class="form-group">
                     <label>Order Number:</label>
                     <input type="text" id="orderNumber" required>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label>Customer Name:</label>
@@ -143,12 +120,10 @@
                         <input type="tel" id="phone" required>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label>Address Line:</label>
                     <input type="text" id="addressLine" required>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label>Nearest City:</label>
@@ -159,12 +134,10 @@
                         <input type="text" id="district" required>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label>Order Notes (Optional):</label>
                     <textarea id="orderNotes" rows="2"></textarea>
                 </div>
-
                 <div class="form-group">
                     <label>Order Type:</label>
                     <select id="orderType" onchange="toggleCustomPrice()">
@@ -172,7 +145,6 @@
                         <option value="custom">Custom Frame</option>
                     </select>
                 </div>
-
                 <div id="standardFrameSection">
                     <div class="form-row">
                         <div class="form-group">
@@ -201,7 +173,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div id="customPriceSection" style="display:none;">
                     <div class="form-row">
                         <div class="form-group">
@@ -220,7 +191,6 @@
                         </div>
                     </div>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label>Unit Price:</label>
@@ -231,7 +201,6 @@
                         <input type="number" id="unitCost" readonly>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label>Quantity:</label>
                     <div class="quantity-control">
@@ -240,7 +209,6 @@
                         <button type="button" class="qty-btn" onclick="incrementQty()">+</button>
                     </div>
                 </div>
-
                 <div class="form-row total-section">
                     <div class="form-group">
                         <label>Total Price:</label>
@@ -251,12 +219,10 @@
                         <input type="number" id="totalCost" readonly>
                     </div>
                 </div>
-
                 <div class="form-group">
                     <label>Date:</label>
                     <input type="date" id="orderDate" required>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label>Status:</label>
@@ -264,130 +230,110 @@
                             <option value="Need to Deliver">Need to Deliver</option>
                             <option value="Dispatched">Dispatched</option>
                             <option value="Delivered">Delivered</option>
-                            <option value="Refund">Refund</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Payment Method:</label>
                         <select id="paymentMethod">
                             <option value="COD">COD (Cash on Delivery)</option>
-                            <option value="Bank Deposit">Bank Deposit</option>
+                            <option value="Online Payment">Online Payment</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
                         </select>
                     </div>
                 </div>
-
                 <button type="submit" class="btn-primary btn-3d">Add Order</button>
             </form>
         </section>
 
-        <!-- Need to Deliver Section -->
         <section id="need-deliver" class="section">
-            <div class="content-with-sidebar">
-                <div class="main-content-area">
-                    <h1 class="page-title">📦 Need to Deliver</h1>
-                    <div id="needDeliverList" class="order-list"></div>
-                </div>
-                
-                <div class="totals-sidebar">
-                    <div class="totals-box-sticky">
-                        <h3>Totals</h3>
-                        <div class="total-item">
-                            <span>Total Cost:</span>
-                            <span class="total-value">Rs. <span id="needDeliverCost">0</span></span>
-                        </div>
-                        <div class="total-item">
-                            <span>Total Profit:</span>
-                            <span class="total-value profit-value">Rs. <span id="needDeliverProfit">0</span></span>
-                        </div>
-                    </div>
-                </div>
+    <h1 class="page-title">📦 Need to Deliver</h1>
+    
+    <div id="needDeliverList" class="order-list">
+        <!-- Orders will be displayed here -->
+    </div>
+    
+    <div class="totals-sidebar">
+        <div class="totals-box-sticky">
+            <h3>💰 Totals</h3>
+            <div class="total-item">
+                <span>Total Cost:</span>
+                <span class="total-value">Rs. <span id="needDeliverCost">0</span></span>
             </div>
-        </section>
+            <div class="total-item">
+                <span>Total Profit:</span>
+                <span class="total-value profit-value">Rs. <span id="needDeliverProfit">0</span></span>
+            </div>
+        </div>
+    </div>
+</section>
 
-        <!-- Dispatched Section -->
+
+
         <section id="dispatched" class="section">
-            <div class="content-with-sidebar">
-                <div class="main-content-area">
-                    <h1 class="page-title">🚚 Dispatched</h1>
-                    <div id="dispatchedList" class="order-list"></div>
-                </div>
-                
-                <div class="totals-sidebar">
-                    <div class="totals-box-sticky">
-                        <h3>Totals</h3>
-                        <div class="total-item">
-                            <span>Total Cost:</span>
-                            <span class="total-value">Rs. <span id="dispatchedCost">0</span></span>
-                        </div>
-                        <div class="total-item">
-                            <span>Total Profit:</span>
-                            <span class="total-value profit-value">Rs. <span id="dispatchedProfit">0</span></span>
-                        </div>
+            <h1 class="page-title">🚚 Dispatched</h1>
+            <div id="dispatchedList" class="order-list"></div>
+            <div class="totals-sidebar">
+                <div class="totals-box-sticky">
+                    <h3>Totals</h3>
+                    <div class="total-item">
+                        <span>Total Cost:</span>
+                        <span class="total-value">Rs. <span id="dispatchedCost">0</span></span>
+                    </div>
+                    <div class="total-item">
+                        <span>Total Profit:</span>
+                        <span class="total-value profit-value">Rs. <span id="dispatchedProfit">0</span></span>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Delivered Section -->
         <section id="delivered" class="section">
-            <div class="content-with-sidebar">
-                <div class="main-content-area">
-                    <h1 class="page-title">✅ Delivered</h1>
-                    <div id="deliveredList" class="order-list"></div>
-                </div>
-                
-                <div class="totals-sidebar">
-                    <div class="totals-box-sticky">
-                        <h3>Totals</h3>
-                        <div class="total-item">
-                            <span>Total Cost:</span>
-                            <span class="total-value">Rs. <span id="deliveredCost">0</span></span>
-                        </div>
-                        <div class="total-item">
-                            <span>Total Profit:</span>
-                            <span class="total-value profit-value">Rs. <span id="deliveredProfit">0</span></span>
-                        </div>
+            <h1 class="page-title">✅ Delivered</h1>
+            <div id="deliveredList" class="order-list"></div>
+            <div class="totals-sidebar">
+                <div class="totals-box-sticky">
+                    <h3>Totals</h3>
+                    <div class="total-item">
+                        <span>Total Cost:</span>
+                        <span class="total-value">Rs. <span id="deliveredCost">0</span></span>
+                    </div>
+                    <div class="total-item">
+                        <span>Total Profit:</span>
+                        <span class="total-value profit-value">Rs. <span id="deliveredProfit">0</span></span>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Refund Section -->
         <section id="refund" class="section">
-            <div class="content-with-sidebar">
-                <div class="main-content-area">
-                    <h1 class="page-title">↩️ Refund</h1>
-                    <div id="refundList" class="order-list"></div>
-                </div>
-                
-                <div class="totals-sidebar">
-                    <div class="totals-box-sticky">
-                        <h3>Totals</h3>
-                        <div class="total-item">
-                            <span>Total Cost (Loss):</span>
-                            <span class="total-value loss-value">Rs. <span id="refundCost">0</span></span>
-                        </div>
-                        <div class="total-item">
-                            <span>Total Profit (Loss):</span>
-                            <span class="total-value loss-value">Rs. <span id="refundProfit">0</span></span>
-                        </div>
+            <h1 class="page-title">↩️ Refund</h1>
+            <div id="refundList" class="order-list"></div>
+            <div class="totals-sidebar">
+                <div class="totals-box-sticky">
+                    <h3>Totals</h3>
+                    <div class="total-item">
+                        <span>Total Loss:</span>
+                        <span class="total-value loss-value">Rs. <span id="refundCost">0</span></span>
+                    </div>
+                    <div class="total-item">
+                        <span>Total Loss:</span>
+                        <span class="total-value loss-value">Rs. <span id="refundProfit">0</span></span>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Other Expenses Section -->
         <section id="expenses" class="section">
             <h1 class="page-title">💰 Other Expenses</h1>
             <form id="expenseForm" class="expense-form">
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Expense Name:</label>
-                        <input type="text" id="expenseName" required>
+                        <label>Description:</label>
+                        <input type="text" id="expenseDesc" required>
                     </div>
                     <div class="form-group">
-                        <label>Cost:</label>
-                        <input type="number" id="expenseCost" min="0" required>
+                        <label>Amount (Rs.):</label>
+                        <input type="number" id="expenseAmount" step="0.01" min="0" required>
                     </div>
                     <div class="form-group">
                         <label>Date:</label>
@@ -396,28 +342,26 @@
                 </div>
                 <button type="submit" class="btn-primary btn-3d">Add Expense</button>
             </form>
-            <div id="expenseList" class="expense-list"></div>
+            <div id="expensesList" class="expense-list"></div>
         </section>
 
-        <!-- Sales Analytics Section -->
         <section id="analytics" class="section">
             <h1 class="page-title">📈 Sales Analytics</h1>
-            
             <div class="analytics-summary">
                 <div class="card card-3d">
                     <h3>Top Selling Size</h3>
                     <p class="stat-value" id="topSize">-</p>
-                    <small id="topSizeQty">0 orders</small>
+                    <small id="topSizeCount">0 orders</small>
                 </div>
                 <div class="card card-3d">
                     <h3>Least Selling Size</h3>
                     <p class="stat-value" id="leastSize">-</p>
-                    <small id="leastSizeQty">0 orders</small>
+                    <small id="leastSizeCount">0 orders</small>
                 </div>
                 <div class="card card-3d">
                     <h3>Top District</h3>
                     <p class="stat-value" id="topDistrict">-</p>
-                    <small id="topDistrictQty">0 orders</small>
+                    <small id="topDistrictCount">0 orders</small>
                 </div>
                 <div class="card card-3d">
                     <h3>COD Orders</h3>
@@ -425,45 +369,36 @@
                     <small id="codCount">0 orders</small>
                 </div>
             </div>
-
             <div class="charts-container">
                 <div class="chart-box">
-                    <h3>Frame Size Sales Performance</h3>
+                    <h3>Frame Size Sales</h3>
                     <canvas id="frameSizeChart"></canvas>
                 </div>
-
                 <div class="chart-box small-chart">
                     <h3>Payment Methods</h3>
                     <canvas id="paymentChart"></canvas>
                 </div>
-
                 <div class="chart-box small-chart">
-                    <h3>Top 5 Districts</h3>
+                    <h3>Top Districts</h3>
                     <canvas id="districtChart"></canvas>
                 </div>
-
                 <div class="chart-box small-chart">
                     <h3>Frame Types</h3>
                     <canvas id="frameTypeChart"></canvas>
                 </div>
-
                 <div class="chart-box small-chart">
-                    <h3>Top 5 Cities</h3>
+                    <h3>Top Cities</h3>
                     <canvas id="cityChart"></canvas>
                 </div>
             </div>
         </section>
-
     </div>
 
-    <!-- Authentication Check -->
-        <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getDatabase, ref, set, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-        import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyD4cllOCGjbhqQtIpA33X1umdwAJSWtQIo",
             authDomain: "my-art-gallery-database.firebaseapp.com",
@@ -475,12 +410,10 @@
             measurementId: "G-LMPGKDWC1X"
         };
 
-        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const database = getDatabase(app);
         const auth = getAuth(app);
 
-        // Make database and auth available globally
         window.database = database;
         window.auth = auth;
         window.firebaseRef = ref;
@@ -491,9 +424,6 @@
         window.firebaseUpdate = update;
         window.firebaseSignOut = signOut;
 
-        // Check if user is logged in
-        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        
         onAuthStateChanged(auth, (user) => {
             if (!user) {
                 window.location.href = 'login.html';
