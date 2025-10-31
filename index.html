@@ -473,8 +473,33 @@ const firebaseConfig = {
   messagingSenderId: "1039842849967",
   appId: "1:1039842849967:web:6c602cc9424a8c3aea905a"
 };
+        <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    
+    <script>
+      // ඔයා copy කරගත්තු firebaseConfig code එක මෙතන paste කරන්න
+      const firebaseConfig = {
+        apiKey: "AIzaSy...",
+        authDomain: "your-project-id.firebaseapp.com",
+        projectId: "your-project-id",
+        storageBucket: "your-project-id.appspot.com",
+        messagingSenderId: "...",
+        appId: "..."
+      };
+      
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      // අපේ "Online පොත" (database) එකට සම්බන්ධ වෙනවා
+      const db = firebase.firestore(); 
+    </script>
+    
+    <script src="script.js"></script>
+</body>
+</html>
     </script>
 
     <script src="script.js"></script>
 </body>
+    
 </html>
+
