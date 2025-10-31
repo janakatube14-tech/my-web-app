@@ -76,28 +76,40 @@ function loadExpensesFromFirebase() {
 function saveOrderToFirebase(order) {
     const ordersRef = window.firebaseRef(window.database, 'orders');
     const newOrderRef = window.firebasePush(ordersRef);
-    window.firebaseSet(newOrderRef, order);
+    window.firebaseSet(newOrderRef, order).catch(error => {
+        console.error('Error saving order:', error);
+        alert('Error: ' + error.message);
+    });
 }
 
 function updateOrderInFirebase(firebaseId, updates) {
     const orderRef = window.firebaseRef(window.database, `orders/${firebaseId}`);
-    window.firebaseUpdate(orderRef, updates);
+    window.firebaseUpdate(orderRef, updates).catch(error => {
+        console.error('Error updating order:', error);
+    });
 }
 
 function deleteOrderFromFirebase(firebaseId) {
     const orderRef = window.firebaseRef(window.database, `orders/${firebaseId}`);
-    window.firebaseRemove(orderRef);
+    window.firebaseRemove(orderRef).catch(error => {
+        console.error('Error deleting order:', error);
+    });
 }
 
 function saveExpenseToFirebase(expense) {
     const expensesRef = window.firebaseRef(window.database, 'expenses');
     const newExpenseRef = window.firebasePush(expensesRef);
-    window.firebaseSet(newExpenseRef, expense);
+    window.firebaseSet(newExpenseRef, expense).catch(error => {
+        console.error('Error saving expense:', error);
+        alert('Error: ' + error.message);
+    });
 }
 
 function deleteExpenseFromFirebase(firebaseId) {
     const expenseRef = window.firebaseRef(window.database, `expenses/${firebaseId}`);
-    window.firebaseRemove(expenseRef);
+    window.firebaseRemove(expenseRef).catch(error => {
+        console.error('Error deleting expense:', error);
+    });
 }
 
 // ========== UI INITIALIZATION ==========
@@ -234,16 +246,26 @@ function initializeUI() {
         expenseForm.addEventListener('submit', (e) => {
             e.preventDefault();
             
+            const description = document.getElementById('expenseDesc').value;
+            const amount = parseFloat(document.getElementById('expenseAmount').value);
+            const date = document.getElementById('expenseDate').value;
+
+            if (!description || !amount || !date) {
+                alert('Please fill all expense fields');
+                return;
+            }
+            
             const expense = {
                 id: Date.now(),
-                description: document.getElementById('expenseDesc').value,
-                amount: parseFloat(document.getElementById('expenseAmount').value),
-                date: document.getElementById('expenseDate').value
+                description: description,
+                amount: amount,
+                date: date
             };
 
             saveExpenseToFirebase(expense);
             alert('✅ Expense added successfully!');
             expenseForm.reset();
+            displayExpenses();
         });
     }
 }
