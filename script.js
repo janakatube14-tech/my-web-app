@@ -1,4 +1,4 @@
-// Price List Data (වෙනසක් නෑ)
+// Price List Data
 const priceList = [
     { type: "Ply Mount", size: "4x6", price: 950, cost: 275 },
     { type: "Ply Mount", size: "6x8", price: 1350, cost: 435 },
@@ -22,107 +22,246 @@ const priceList = [
     { type: "Glass Frame", size: "20x30", price: 9150, cost: 4300 }
 ];
 
-// --- Firebase Data Holders ---
-// මේවායේ තමයි Firebase එකෙන් ගත්තු data තියාගන්නේ
+// Global variables
 let orders = [];
 let expenses = [];
-// -----------------------------
-
 let frameSizeChart, paymentChart, districtChart, frameTypeChart, cityChart;
 
-// ===== DOM and UI Functions (වෙනසක් නෑ) =====
-const menuToggle = document.getElementById('menuToggle');
-const sidebar = document.getElementById('sidebar');
-const sidebarOverlay = document.getElementById('sidebarOverlay');
-
-menuToggle.addEventListener('click', () => {
-    menuToggle.classList.toggle('active');
-    sidebar.classList.toggle('active');
-    sidebarOverlay.classList.toggle('active');
-    document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : 'auto';
-});
-sidebarOverlay.addEventListener('click', () => {
-    menuToggle.classList.remove('active');
-    sidebar.classList.remove('active');
-    sidebarOverlay.classList.remove('active');
-    document.body.style.overflow = 'auto';
-});
-document.querySelectorAll('.nav-link').forEach(link => {
-    link.addEventListener('click', () => {
-        if (window.innerWidth <= 767) {
-            menuToggle.classList.remove('active');
-            sidebar.classList.remove('active');
-            sidebarOverlay.classList.remove('active');
-            document.body.style.overflow = 'auto';
-        }
-    });
+// Wait for Firebase to be ready
+window.addEventListener('load', function() {
+    setTimeout(initializeApp, 500);
 });
 
-// Theme Toggle (වෙනසක් නෑ)
-const themeToggle = document.getElementById('themeToggle');
-const currentTheme = localStorage.getItem('theme') || 'light';
-if (currentTheme === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    themeToggle.textContent = '☀️';
+function initializeApp() {
+    // Load data from Firebase
+    loadOrdersFromFirebase();
+    loadExpensesFromFirebase();
+    
+    // Initialize UI
+    initializeUI();
 }
-themeToggle.addEventListener('click', () => {
-    const theme = document.documentElement.getAttribute('data-theme');
-    if (theme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'light');
-        localStorage.setItem('theme', 'light');
-        themeToggle.textContent = '🌙';
-    } else {
+
+// Load orders from Firebase with real-time listener
+function loadOrdersFromFirebase() {
+    const ordersRef = window.firebaseRef(window.database, 'orders');
+    window.firebaseOnValue(ordersRef, (snapshot) => {
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            orders = Object.keys(data).map(key => ({
+                firebaseId: key,
+                ...data[key]
+            }));
+        } else {
+            orders = [];
+        }
+        updateDashboard();
+        updateAllOrderDisplays();
+    });
+}
+
+// Load expenses from Firebase with real-time listener
+function loadExpensesFromFirebase() {
+    const expensesRef = window.firebaseRef(window.database, 'expenses');
+    window.firebaseOnValue(expensesRef, (snapshot) => {
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+            expenses = Object.keys(data).map(key => ({
+                firebaseId: key,
+                ...data[key]
+            }));
+        } else {
+            expenses = [];
+        }
+        displayExpenses();
+    });
+}
+
+// Save order to Firebase
+function saveOrderToFirebase(order) {
+    const ordersRef = window.firebaseRef(window.database, 'orders');
+    const newOrderRef = window.firebasePush(ordersRef);
+    window.firebaseSet(newOrderRef, order);
+}
+
+// Update order in Firebase
+function updateOrderInFirebase(firebaseId, updates) {
+    const orderRef = window.firebaseRef(window.database, `orders/${firebaseId}`);
+    window.firebaseUpdate(orderRef, updates);
+}
+
+// Delete order from Firebase
+function deleteOrderFromFirebase(firebaseId) {
+    const orderRef = window.firebaseRef(window.database, `orders/${firebaseId}`);
+    window.firebaseRemove(orderRef);
+}
+
+// Save expense to Firebase
+function saveExpenseToFirebase(expense) {
+    const expensesRef = window.firebaseRef(window.database, 'expenses');
+    const newExpenseRef = window.firebasePush(expensesRef);
+    window.firebaseSet(newExpenseRef, expense);
+}
+
+// Delete expense from Firebase
+function deleteExpenseFromFirebase(firebaseId) {
+    const expenseRef = window.firebaseRef(window.database, `expenses/${firebaseId}`);
+    window.firebaseRemove(expenseRef);
+}
+
+// Initialize UI elements
+function initializeUI() {
+    // Hamburger Menu
+    const menuToggle = document.getElementById('menuToggle');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+    menuToggle.addEventListener('click', () => {
+        menuToggle.classList.toggle('active');
+        sidebar.classList.toggle('active');
+        sidebarOverlay.classList.toggle('active');
+        document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : 'auto';
+    });
+
+    sidebarOverlay.addEventListener('click', () => {
+        menuToggle.classList.remove('active');
+        sidebar.classList.remove('active');
+        sidebarOverlay.classList.remove('active');
+        document.body.style.overflow = 'auto';
+    });
+
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 767) {
+                menuToggle.classList.remove('active');
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
+        });
+    });
+
+    // Theme Toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const currentTheme = localStorage.getItem('theme') || 'light';
+    
+    if (currentTheme === 'dark') {
         document.documentElement.setAttribute('data-theme', 'dark');
-        localStorage.setItem('theme', 'dark');
         themeToggle.textContent = '☀️';
     }
-    updateChartTheme();
-});
 
+    themeToggle.addEventListener('click', () => {
+        const theme = document.documentElement.getAttribute('data-theme');
+        if (theme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'light');
+            localStorage.setItem('theme', 'light');
+            themeToggle.textContent = '🌙';
+        } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+            themeToggle.textContent = '☀️';
+        }
+        updateChartTheme();
+    });
 
-// ===== Firebase Data Loading Function =====
-// මේක තමයි හැම වෙලාවෙම Online data අරන් එන function එක
-async function loadAllData() {
-    console.log("Loading data from Firebase...");
-    try {
-        // 1. Orders Load කිරීම
-        const ordersSnapshot = await db.collection("orders").orderBy("date", "desc").get();
-        // `doc.id` එක තමයි Firebase ID එක. ඒක order එකටම `id` විදිහට දාගන්නවා.
-        orders = ordersSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-
-        // 2. Expenses Load කිරීම
-        const expensesSnapshot = await db.collection("expenses").orderBy("date", "desc").get();
-        expenses = expensesSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-        
-        console.log("Data loaded:", orders.length, "orders,", expenses.length, "expenses.");
-        
-        // Data ගත්තට පස්සේ Dashboard එක update කරනවා
-        updateDashboard();
-        // මුලින්ම 'dashboard' section එක පෙන්නනවා
-        showSection('dashboard');
-        
-    } catch (e) {
-        console.error("Error loading data: ", e);
-        alert("❌ Data load වුනේ නෑ. Internet connection එකයි Firebase setup එකයි බලන්න.");
+    // Logout button
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to logout?')) {
+                window.firebaseSignOut(window.auth).then(() => {
+                    window.location.href = 'login.html';
+                }).catch((error) => {
+                    console.error('Logout error:', error);
+                });
+            }
+        });
     }
+
+    // Order form event listeners
+    document.getElementById('customPrice').addEventListener('input', updatePrice);
+    document.getElementById('customCost').addEventListener('input', updatePrice);
+    
+    document.getElementById('orderForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const quantity = parseInt(document.getElementById('quantity').value);
+        const unitPrice = parseFloat(document.getElementById('unitPrice').value);
+        const unitCost = parseFloat(document.getElementById('unitCost').value);
+        const orderType = document.getElementById('orderType').value;
+        
+        let frameType, frameSize;
+        if (orderType === 'custom') {
+            frameType = 'Custom';
+            frameSize = document.getElementById('customFrameDesc').value || 'Custom Frame';
+        } else {
+            frameType = document.getElementById('frameType').value;
+            frameSize = document.getElementById('frameSize').value;
+        }
+
+        const order = {
+            id: Date.now(),
+            orderNumber: document.getElementById('orderNumber').value,
+            customerName: document.getElementById('customerName').value,
+            phone: document.getElementById('phone').value,
+            addressLine: document.getElementById('addressLine').value,
+            city: document.getElementById('city').value,
+            district: document.getElementById('district').value,
+            orderNotes: document.getElementById('orderNotes').value,
+            orderType: orderType,
+            frameType: frameType,
+            frameSize: frameSize,
+            quantity: quantity,
+            unitPrice: unitPrice,
+            unitCost: unitCost,
+            totalPrice: unitPrice * quantity,
+            totalCost: unitCost * quantity,
+            originalTotalCost: unitCost * quantity,
+            date: document.getElementById('orderDate').value,
+            status: document.getElementById('orderStatus').value,
+            paymentMethod: document.getElementById('paymentMethod').value
+        };
+
+        saveOrderToFirebase(order);
+        alert('✅ Order added successfully!');
+        document.getElementById('orderForm').reset();
+        document.getElementById('quantity').value = 1;
+        updatePrice();
+    });
+
+    // Expense form
+    document.getElementById('expenseForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const expense = {
+            id: Date.now(),
+            description: document.getElementById('expenseDesc').value,
+            amount: parseFloat(document.getElementById('expenseAmount').value),
+            date: document.getElementById('expenseDate').value
+        };
+
+        saveExpenseToFirebase(expense);
+        document.getElementById('expenseForm').reset();
+    });
 }
 
-
-// ===== Section Switching Function (වෙනසක් නෑ) =====
 function showSection(sectionId) {
     document.querySelectorAll('.section').forEach(section => {
         section.classList.remove('active');
     });
+    
     document.getElementById(sectionId).classList.add('active');
     
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
     });
-    document.querySelectorAll('.nav-link[href="#' + sectionId + '"]').forEach(link => {
-        link.classList.add('active');
-    });
     
-    // Data load වුනාට පස්සේ අදාල display function එක call කරනවා
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+        if (link.getAttribute('href') === '#' + sectionId) {
+            link.classList.add('active');
+        }
+    });
+
     if (sectionId === 'dashboard') {
         updateDashboard();
     } else if (sectionId === 'analytics') {
@@ -140,12 +279,19 @@ function showSection(sectionId) {
     }
 }
 
-// ===== Add Order Form Logic (වෙනසක් නෑ) =====
+function updateAllOrderDisplays() {
+    displayOrders('Need to Deliver', 'needDeliverList');
+    displayOrders('Dispatched', 'dispatchedList');
+    displayOrders('Delivered', 'deliveredList');
+    displayOrders('Refund', 'refundList');
+}
+
 function incrementQty() {
     const qtyInput = document.getElementById('quantity');
     qtyInput.value = parseInt(qtyInput.value) + 1;
     calculateTotal();
 }
+
 function decrementQty() {
     const qtyInput = document.getElementById('quantity');
     if (parseInt(qtyInput.value) > 1) {
@@ -153,6 +299,7 @@ function decrementQty() {
         calculateTotal();
     }
 }
+
 function calculateTotal() {
     const quantity = parseInt(document.getElementById('quantity').value) || 1;
     const unitPrice = parseFloat(document.getElementById('unitPrice').value) || 0;
@@ -161,6 +308,7 @@ function calculateTotal() {
     document.getElementById('totalPrice').value = (unitPrice * quantity).toFixed(2);
     document.getElementById('totalCost').value = (unitCost * quantity).toFixed(2);
 }
+
 function toggleCustomPrice() {
     const orderType = document.getElementById('orderType').value;
     const standardSection = document.getElementById('standardFrameSection');
@@ -180,6 +328,7 @@ function toggleCustomPrice() {
     }
     updatePrice();
 }
+
 function updatePrice() {
     const orderType = document.getElementById('orderType').value;
     
@@ -208,86 +357,24 @@ function updatePrice() {
         calculateTotal();
     }
 }
-document.getElementById('customPrice').addEventListener('input', updatePrice);
-document.getElementById('customCost').addEventListener('input', updatePrice);
 
-
-// ===== Order Form Submit (Firebase Save) =====
-document.getElementById('orderForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    
-    const quantity = parseInt(document.getElementById('quantity').value);
-    const unitPrice = parseFloat(document.getElementById('unitPrice').value);
-    const unitCost = parseFloat(document.getElementById('unitCost').value);
-    const orderType = document.getElementById('orderType').value;
-    
-    let frameType, frameSize;
-    if (orderType === 'custom') {
-        frameType = 'Custom';
-        frameSize = document.getElementById('customFrameDesc').value || 'Custom Frame';
-    } else {
-        frameType = document.getElementById('frameType').value;
-        frameSize = document.getElementById('frameSize').value;
-    }
-    
-    const order = {
-        orderNumber: document.getElementById('orderNumber').value,
-        customerName: document.getElementById('customerName').value,
-        phone: document.getElementById('phone').value,
-        addressLine: document.getElementById('addressLine').value,
-        city: document.getElementById('city').value,
-        district: document.getElementById('district').value,
-        orderNotes: document.getElementById('orderNotes').value,
-        orderType: orderType,
-        frameType: frameType,
-        frameSize: frameSize,
-        quantity: quantity,
-        unitPrice: unitPrice,
-        unitCost: unitCost,
-        totalPrice: unitPrice * quantity,
-        totalCost: unitCost * quantity,
-        originalTotalCost: unitCost * quantity, // Refund ගණනයට
-        date: document.getElementById('orderDate').value,
-        status: document.getElementById('orderStatus').value,
-        paymentMethod: document.getElementById('paymentMethod').value
-    };
-    
-    // --- localStorage වෙනුවට Firebase ---
-    db.collection("orders").add(order)
-        .then((docRef) => {
-            console.log("Order added with ID: ", docRef.id);
-            alert('✅ Order එක Online පොතට (Firebase) දැම්මා!');
-            // Page එක reload කරලා අලුත් data load කරනවා
-            location.reload(); 
-        })
-        .catch((error) => {
-            console.error("Error adding order: ", error);
-            alert("❌ Order එක add කරන්න බැරි වුනා! (Console එක බලන්න)");
-        });
-    // ------------------------------------
-});
-
-
-// ===== Display Orders (Firebase Data) =====
 function displayOrders(status, containerId) {
     const container = document.getElementById(containerId);
-    // global `orders` array එකෙන් filter කරනවා
     const filteredOrders = orders.filter(order => order.status === status);
     
     container.innerHTML = '';
     
     if (filteredOrders.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No orders found</p>';
+        container.innerHTML = '<div class="no-data"><p>📦</p><p>No orders found</p></div>';
         document.getElementById(containerId.replace('List', 'Cost')).textContent = '0.00';
         document.getElementById(containerId.replace('List', 'Profit')).textContent = '0.00';
         return;
     }
-    
+
     let totalCost = 0;
     let totalProfit = 0;
-    
+
     filteredOrders.forEach(order => {
-        // Refund වලට Loss ගණනය කරනවා
         let profit;
         if (status === 'Refund') {
             profit = -(order.originalTotalCost);
@@ -298,342 +385,167 @@ function displayOrders(status, containerId) {
             totalCost += order.totalCost;
             totalProfit += profit;
         }
-        
+
         const orderCard = document.createElement('div');
         orderCard.className = status === 'Refund' ? 'order-card refund-card' : 'order-card';
         
-        // order.id යනු Firebase ID එකයි
         orderCard.innerHTML = `
             <div class="order-header">
-                <span class="order-number">#${order.orderNumber}</span>
-                <span class="detail-value">${order.date}</span>
+                <h3>#${order.orderNumber}</h3>
+                <span class="order-date">${order.date}</span>
             </div>
             <div class="order-details">
-                <div class="detail-item"><span class="detail-label">Customer:</span> <span class="detail-value">${order.customerName}</span></div>
-                <div class="detail-item"><span class="detail-label">Phone:</span> <span class="detail-value">${order.phone}</span></div>
-                <div class="detail-item"><span class="detail-label">Address:</span> <span class="detail-value">${order.addressLine}</span></div>
-                <div class="detail-item"><span class="detail-label">City:</span> <span class="detail-value">${order.city}</span></div>
-                <div class="detail-item"><span class="detail-label">District:</span> <span class="detail-value">${order.district}</span></div>
-                <div class="detail-item"><span class="detail-label">Frame:</span> <span class="detail-value">${order.frameType} - ${order.frameSize}</span></div>
-                <div class="detail-item"><span class="detail-label">Quantity:</span> <span class="detail-value">${order.quantity}</span></div>
-                <div class="detail-item"><span class="detail-label">Total Price:</span> <span class="detail-value">Rs. ${order.totalPrice.toFixed(2)}</span></div>
-                <div class="detail-item"><span class="detail-label">Total Cost:</span> <span class="detail-value">Rs. ${order.totalCost.toFixed(2)}</span></div>
-                <div class="detail-item"><span class="detail-label">${status === 'Refund' ? 'Loss:' : 'Profit:'}</span> <span class="detail-value ${status === 'Refund' ? 'loss-indicator' : ''}">Rs. ${profit.toFixed(2)}</span></div>
-                <div class="detail-item"><span class="detail-label">Payment:</span> <span class="detail-value">${order.paymentMethod}</span></div>
+                <p><strong>👤 Customer:</strong> ${order.customerName}</p>
+                <p><strong>📞 Phone:</strong> ${order.phone}</p>
+                <p><strong>📍 Address:</strong> ${order.addressLine}, ${order.city}, ${order.district}</p>
+                ${order.orderNotes ? `<p><strong>📝 Notes:</strong> ${order.orderNotes}</p>` : ''}
+                <p><strong>🖼️ Frame:</strong> ${order.frameType} - ${order.frameSize}</p>
+                <p><strong>📦 Quantity:</strong> ${order.quantity}</p>
+                <p><strong>💰 Total Price:</strong> Rs. ${order.totalPrice.toFixed(2)}</p>
+                <p><strong>💵 Payment:</strong> ${order.paymentMethod}</p>
+                ${status === 'Refund' ? `<p class="refund-loss"><strong>⚠️ Loss:</strong> Rs. ${Math.abs(profit).toFixed(2)}</p>` : `<p><strong>📈 Profit:</strong> Rs. ${profit.toFixed(2)}</p>`}
             </div>
-            ${order.orderNotes ? `<p style="margin-top: 10px;"><strong>Notes:</strong> ${order.orderNotes}</p>` : ''}
             <div class="order-actions">
-                ${status === 'Need to Deliver' ? `
-                    <button class="btn-small btn-warning" onclick="changeStatus('${order.id}', 'Dispatched')">Mark as Dispatched</button>
-                    <button class="btn-small btn-success" onclick="changeStatus('${order.id}', 'Delivered')">Mark as Delivered</button>
-                    <button class="btn-small btn-danger" onclick="changeStatus('${order.id}', 'Refund')">Refund</button>
+                ${status !== 'Delivered' && status !== 'Refund' ? `
+                    <button class="btn-action" onclick="changeOrderStatus('${order.firebaseId}', '${getNextStatus(status)}')">
+                        ${getNextStatus(status)}
+                    </button>
                 ` : ''}
-                ${status === 'Dispatched' ? `
-                    <button class="btn-small btn-success" onclick="changeStatus('${order.id}', 'Delivered')">Mark as Delivered</button>
-                    <button class="btn-small btn-danger" onclick="changeStatus('${order.id}', 'Refund')">Refund</button>
+                ${status !== 'Refund' ? `
+                    <button class="btn-refund" onclick="refundOrder('${order.firebaseId}')">Refund</button>
                 ` : ''}
-                <button class="btn-small btn-danger" onclick="deleteOrder('${order.id}')">Delete</button>
+                <button class="btn-delete" onclick="deleteOrder('${order.firebaseId}')">Delete</button>
             </div>
         `;
+        
         container.appendChild(orderCard);
     });
-    
+
     document.getElementById(containerId.replace('List', 'Cost')).textContent = totalCost.toFixed(2);
-    // Refund section එකට Loss එක පෙන්නන්න (ධන අගයක් ලෙස)
-    document.getElementById(containerId.replace('List', 'Profit')).textContent = status === 'Refund' ? Math.abs(totalProfit).toFixed(2) : totalProfit.toFixed(2);
+    document.getElementById(containerId.replace('List', 'Profit')).textContent = totalProfit.toFixed(2);
 }
 
+function getNextStatus(currentStatus) {
+    if (currentStatus === 'Need to Deliver') return 'Dispatched';
+    if (currentStatus === 'Dispatched') return 'Delivered';
+    return currentStatus;
+}
 
-// ===== Order Status Change (Firebase Update) =====
-function changeStatus(orderId, newStatus) {
-    const order = orders.find(o => o.id === orderId);
-    if (order) {
-        if (newStatus === 'Refund') {
-            const confirmRefund = confirm(`⚠️ ඔබ මේ order එක Refund කරන්න sure ද? මෙයින් Rs. ${order.originalTotalCost.toFixed(2)} ක Loss එකක් සිදුවේ.`);
-            if (!confirmRefund) {
-                return;
-            }
-            // Refund එකකදී cost එක 0 කළ යුතුය, නමුත් අපි originalTotalCost එක වෙනම තියාගන්නවා
-        }
-        
-        console.log(`Updating order ${orderId} to status ${newStatus}`);
-        
-        // --- Firebase Update ---
-        db.collection("orders").doc(orderId).update({
-            status: newStatus
-        })
-        .then(() => {
-            console.log("Status updated!");
-            location.reload(); // Page එක reload කරලා අලුත් data ගන්නවා
-        })
-        .catch((error) => {
-            console.error("Error updating status: ", error);
-            alert("❌ Status update කරන්න බැරි වුනා! (Console එක බලන්න)");
-        });
-        // -----------------------
+function changeOrderStatus(firebaseId, newStatus) {
+    updateOrderInFirebase(firebaseId, { status: newStatus });
+}
+
+function refundOrder(firebaseId) {
+    if (confirm('Are you sure you want to refund this order?')) {
+        updateOrderInFirebase(firebaseId, { status: 'Refund' });
     }
 }
 
-
-// ===== Delete Order (Firebase Delete) =====
-function deleteOrder(orderId) {
-    if (confirm('⚠️ මේ order එක delete කරන්න sure ද? මෙය ආපසු ගත නොහැක!')) {
-        console.log(`Deleting order ${orderId}`);
-        
-        // --- Firebase Delete ---
-        db.collection("orders").doc(orderId).delete()
-        .then(() => {
-            console.log("Order deleted!");
-            location.reload(); // Page එක reload කරලා අලුත් data ගන්නවා
-        })
-        .catch((error) => {
-            console.error("Error deleting order: ", error);
-            alert("❌ Order එක delete කරන්න බැරි වුනා! (Console එක බලන්න)");
-        });
-        // -----------------------
+function deleteOrder(firebaseId) {
+    if (confirm('Are you sure you want to delete this order? This action cannot be undone.')) {
+        deleteOrderFromFirebase(firebaseId);
     }
 }
 
-
-// ===== Expense Form Submit (Firebase Save) =====
-document.getElementById('expenseForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    
-    const expense = {
-        name: document.getElementById('expenseName').value,
-        cost: parseFloat(document.getElementById('expenseCost').value),
-        date: document.getElementById('expenseDate').value
-    };
-    
-    // --- Firebase Save ---
-    db.collection("expenses").add(expense)
-        .then((docRef) => {
-            console.log("Expense added with ID: ", docRef.id);
-            alert('✅ Expense එක Online පොතට (Firebase) දැම්මා!');
-            location.reload(); 
-        })
-        .catch((error) => {
-            console.error("Error adding expense: ", error);
-            alert("❌ Expense එක add කරන්න බැරි වුනා! (Console එක බලන්න)");
-        });
-    // ---------------------
-});
-
-
-// ===== Display Expenses (Firebase Data) =====
 function displayExpenses() {
-    const container = document.getElementById('expenseList');
-    container.innerHTML = '';
+    const container = document.getElementById('expensesList');
     
     if (expenses.length === 0) {
-        container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">No expenses recorded</p>';
+        container.innerHTML = '<div class="no-data"><p>💰</p><p>No expenses recorded</p></div>';
         return;
     }
-    
+
+    container.innerHTML = '';
     expenses.forEach(expense => {
         const expenseItem = document.createElement('div');
         expenseItem.className = 'expense-item';
-        // expense.id යනු Firebase ID එකයි
         expenseItem.innerHTML = `
-            <div class="expense-info">
-                <div class="expense-name">${expense.name}</div>
-                <div class="expense-date">${expense.date}</div>
+            <div>
+                <strong>${expense.description}</strong>
+                <p>${expense.date}</p>
             </div>
-            <div class="expense-cost">Rs. ${expense.cost.toFixed(2)}</div>
-            <button class="btn-small btn-danger" onclick="deleteExpense('${expense.id}')">Delete</button>
+            <div>
+                <strong>Rs. ${expense.amount.toFixed(2)}</strong>
+                <button class="btn-delete" onclick="deleteExpense('${expense.firebaseId}')">Delete</button>
+            </div>
         `;
         container.appendChild(expenseItem);
     });
 }
 
-
-// ===== Delete Expense (Firebase Delete) =====
-function deleteExpense(expenseId) {
-    if (confirm('⚠️ මේ වියදම delete කරන්න sure ද?')) {
-        console.log(`Deleting expense ${expenseId}`);
-        
-        // --- Firebase Delete ---
-        db.collection("expenses").doc(expenseId).delete()
-        .then(() => {
-            console.log("Expense deleted!");
-            location.reload(); 
-        })
-        .catch((error) => {
-            console.error("Error deleting expense: ", error);
-            alert("❌ Expense එක delete කරන්න බැරි වුනා! (Console එක බලන්න)");
-        });
-        // -----------------------
+function deleteExpense(firebaseId) {
+    if (confirm('Are you sure you want to delete this expense?')) {
+        deleteExpenseFromFirebase(firebaseId);
     }
 }
 
-// ===== Dashboard Functions (Firebase Data වලින් වැඩ) =====
 function updateDashboard() {
     const totalOrders = orders.length;
-    const totalRevenue = orders.filter(o => o.status !== 'Refund').reduce((sum, order) => sum + order.totalPrice, 0);
-    const totalFrameCost = orders.reduce((sum, order) => sum + order.originalTotalCost, 0);
-    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.cost, 0);
+    const totalRevenue = orders.reduce((sum, order) => {
+        return order.status !== 'Refund' ? sum + order.totalPrice : sum;
+    }, 0);
     
-    let calculatedProfit = 0;
-    orders.forEach(order => {
-        if (order.status === 'Refund') {
-            calculatedProfit -= order.originalTotalCost;
-        } else {
-            calculatedProfit += (order.totalPrice - order.totalCost);
-        }
-    });
+    const totalFrameCost = orders.reduce((sum, order) => {
+        return order.status !== 'Refund' ? sum + order.totalCost : sum;
+    }, 0);
     
-    const netProfit = calculatedProfit - totalExpenses;
-    const pendingOrders = orders.filter(o => o.status === 'Need to Deliver').length;
+    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
     
+    const refundLoss = orders.reduce((sum, order) => {
+        return order.status === 'Refund' ? sum + order.originalTotalCost : sum;
+    }, 0);
+    
+    const netProfit = totalRevenue - totalFrameCost - totalExpenses - refundLoss;
+    
+    const pendingOrders = orders.filter(order => 
+        order.status === 'Need to Deliver' || order.status === 'Dispatched'
+    ).length;
+
     document.getElementById('totalOrders').textContent = totalOrders;
-    document.getElementById('totalRevenue').textContent = `Rs. ${totalRevenue.toFixed(2)}`;
-    document.getElementById('totalFrameCost').textContent = `Rs. ${totalFrameCost.toFixed(2)}`;
-    document.getElementById('totalExpenses').textContent = `Rs. ${totalExpenses.toFixed(2)}`;
-    document.getElementById('netProfit').textContent = `Rs. ${netProfit.toFixed(2)}`;
+    document.getElementById('totalRevenue').textContent = totalRevenue.toFixed(2);
+    document.getElementById('totalFrameCost').textContent = totalFrameCost.toFixed(2);
+    document.getElementById('totalExpenses').textContent = totalExpenses.toFixed(2);
+    document.getElementById('netProfit').textContent = netProfit.toFixed(2);
     document.getElementById('pendingOrders').textContent = pendingOrders;
 }
 
-function clearMonthFilter() {
-    document.getElementById('monthFilter').value = '';
-    updateDashboard(); 
-}
-
-function filterByMonth() {
-    const selectedMonth = document.getElementById('monthFilter').value;
-    if (!selectedMonth) {
-        updateDashboard();
-        return;
-    }
-    
-    const filteredOrders = orders.filter(order => order.date.startsWith(selectedMonth));
-    const filteredExpenses = expenses.filter(expense => expense.date.startsWith(selectedMonth));
-    
-    // ... (Dashboard update logic for filtered data - වෙනසක් නෑ)
-    const totalOrders = filteredOrders.length;
-    const totalRevenue = filteredOrders.filter(o => o.status !== 'Refund').reduce((sum, order) => sum + order.totalPrice, 0);
-    const totalFrameCost = filteredOrders.reduce((sum, order) => sum + order.originalTotalCost, 0);
-    const totalExpenses = filteredExpenses.reduce((sum, expense) => sum + expense.cost, 0);
-    let calculatedProfit = 0;
-    filteredOrders.forEach(order => {
-        if (order.status === 'Refund') {
-            calculatedProfit -= order.originalTotalCost;
-        } else {
-            calculatedProfit += (order.totalPrice - order.totalCost);
-        }
-    });
-    const netProfit = calculatedProfit - totalExpenses;
-    const pendingOrders = filteredOrders.filter(o => o.status === 'Need to Deliver').length;
-
-    document.getElementById('totalOrders').textContent = totalOrders;
-    document.getElementById('totalRevenue').textContent = `Rs. ${totalRevenue.toFixed(2)}`;
-    document.getElementById('totalFrameCost').textContent = `Rs. ${totalFrameCost.toFixed(2)}`;
-    document.getElementById('totalExpenses').textContent = `Rs. ${totalExpenses.toFixed(2)}`;
-    document.getElementById('netProfit').textContent = `Rs. ${netProfit.toFixed(2)}`;
-    document.getElementById('pendingOrders').textContent = pendingOrders;
-}
-
-// ===== Analytics Functions (වෙනසක් නෑ) =====
 function updateAnalytics() {
-    updateAnalyticsSummary();
-    createFrameSizeChart();
-    createPaymentChart();
-    createDistrictChart();
-    createFrameTypeChart();
-    createCityChart();
+    updateFrameSizeChart();
+    updatePaymentChart();
+    updateDistrictChart();
+    updateFrameTypeChart();
+    updateCityChart();
+    updateTopSellingStats();
 }
 
-function updateAnalyticsSummary() {
-    const sizeStats = {};
+function updateFrameSizeChart() {
+    const frameSizes = {};
     orders.forEach(order => {
-        const size = order.frameSize;
-        if (!sizeStats[size]) {
-            sizeStats[size] = 0;
+        if (order.status !== 'Refund') {
+            frameSizes[order.frameSize] = (frameSizes[order.frameSize] || 0) + 1;
         }
-        sizeStats[size] += order.quantity;
     });
-    const sortedSizes = Object.entries(sizeStats).sort((a, b) => b[1] - a[1]);
-    
-    if (sortedSizes.length > 0) {
-        document.getElementById('topSize').textContent = sortedSizes[0][0];
-        document.getElementById('topSizeQty').textContent = `${sortedSizes[0][1]} orders`;
-        document.getElementById('leastSize').textContent = sortedSizes[sortedSizes.length - 1][0];
-        document.getElementById('leastSizeQty').textContent = `${sortedSizes[sortedSizes.length - 1][1]} orders`;
-    } else {
-        document.getElementById('topSize').textContent = 'N/A';
-        document.getElementById('leastSize').textContent = 'N/A';
-    }
-    
-    const districtStats = {};
-    orders.forEach(order => {
-        const district = order.district;
-        if (!districtStats[district]) {
-            districtStats[district] = 0;
-        }
-        districtStats[district]++;
-    });
-    const sortedDistricts = Object.entries(districtStats).sort((a, b) => b[1] - a[1]);
-    if (sortedDistricts.length > 0) {
-        document.getElementById('topDistrict').textContent = sortedDistricts[0][0];
-        document.getElementById('topDistrictQty').textContent = `${sortedDistricts[0][1]} orders`;
-    } else {
-        document.getElementById('topDistrict').textContent = 'N/A';
-    }
-    
-    const codOrders = orders.filter(o => o.paymentMethod === 'COD').length;
-    const totalOrders = orders.length;
-    const codPercentage = totalOrders > 0 ? ((codOrders / totalOrders) * 100).toFixed(1) : 0;
-    document.getElementById('codPercentage').textContent = `${codPercentage}%`;
-    document.getElementById('codCount').textContent = `${codOrders} orders`;
-}
 
-function getChartColors() {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    return {
-        textColor: isDark ? '#e2e8f0' : '#2d3748',
-        gridColor: isDark ? '#4a5568' : '#e2e8f0',
-        backgroundColor: [
-            'rgba(52, 152, 219, 0.8)', 'rgba(46, 204, 113, 0.8)', 'rgba(155, 89, 182, 0.8)',
-            'rgba(241, 196, 15, 0.8)', 'rgba(230, 126, 34, 0.8)', 'rgba(231, 76, 60, 0.8)',
-            'rgba(149, 165, 166, 0.8)', 'rgba(52, 73, 94, 0.8)', 'rgba(26, 188, 156, 0.8)',
-            'rgba(243, 156, 18, 0.8)'
-        ],
-        borderColor: [
-            'rgba(52, 152, 219, 1)', 'rgba(46, 204, 113, 1)', 'rgba(155, 89, 182, 1)',
-            'rgba(241, 196, 15, 1)', 'rgba(230, 126, 34, 1)', 'rgba(231, 76, 60, 1)',
-            'rgba(149, 165, 166, 1)', 'rgba(52, 73, 94, 1)', 'rgba(26, 188, 156, 1)',
-            'rgba(243, 156, 18, 1)'
-        ]
-    };
-}
-function createFrameSizeChart() {
-    const ctx = document.getElementById('frameSizeChart').getContext('2d');
-    if (frameSizeChart) frameSizeChart.destroy();
-    const sizeStats = {};
-    orders.forEach(order => {
-        const size = order.frameSize;
-        if (!sizeStats[size]) {
-            sizeStats[size] = { quantity: 0, revenue: 0 };
-        }
-        sizeStats[size].quantity += order.quantity;
-        sizeStats[size].revenue += order.totalPrice;
-    });
-    const labels = Object.keys(sizeStats).sort();
-    const quantities = labels.map(label => sizeStats[label].quantity);
-    const revenues = labels.map(label => sizeStats[label].revenue);
-    const colors = getChartColors();
+    const ctx = document.getElementById('frameSizeChart');
+    if (!ctx) return;
+
+    if (frameSizeChart) {
+        frameSizeChart.destroy();
+    }
+
+    const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+    
     frameSizeChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'Quantity Sold',
-                    data: quantities,
-                    backgroundColor: colors.backgroundColor,
-                    borderColor: colors.borderColor,
-                    borderWidth: 1
-                }
-            ]
+            labels: Object.keys(frameSizes),
+            datasets: [{
+                label: 'Orders by Frame Size',
+                data: Object.values(frameSizes),
+                backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
         },
         options: {
             responsive: true,
@@ -641,198 +553,298 @@ function createFrameSizeChart() {
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: { color: colors.textColor },
-                    grid: { color: colors.gridColor }
+                    ticks: {
+                        color: isDarkTheme ? '#e0e0e0' : '#333',
+                        stepSize: 1
+                    },
+                    grid: {
+                        color: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                    }
                 },
                 x: {
-                    ticks: { color: colors.textColor },
-                    grid: { display: false }
+                    ticks: {
+                        color: isDarkTheme ? '#e0e0e0' : '#333'
+                    },
+                    grid: {
+                        color: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                    }
                 }
             },
             plugins: {
-                legend: { labels: { color: colors.textColor } }
+                legend: {
+                    labels: {
+                        color: isDarkTheme ? '#e0e0e0' : '#333'
+                    }
+                }
             }
         }
     });
 }
-function createPaymentChart() {
-    const ctx = document.getElementById('paymentChart').getContext('2d');
-    if (paymentChart) paymentChart.destroy();
-    const paymentStats = { 'COD': 0, 'Bank Deposit': 0 };
-    orders.forEach(order => { paymentStats[order.paymentMethod]++; });
-    const labels = Object.keys(paymentStats);
-    const data = Object.values(paymentStats);
-    const colors = getChartColors();
+
+function updatePaymentChart() {
+    const paymentMethods = {};
+    orders.forEach(order => {
+        if (order.status !== 'Refund') {
+            paymentMethods[order.paymentMethod] = (paymentMethods[order.paymentMethod] || 0) + 1;
+        }
+    });
+
+    const ctx = document.getElementById('paymentChart');
+    if (!ctx) return;
+
+    if (paymentChart) {
+        paymentChart.destroy();
+    }
+
+    const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+    
     paymentChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: labels,
+            labels: Object.keys(paymentMethods),
             datasets: [{
-                data: data,
-                backgroundColor: colors.backgroundColor.slice(0, 2),
-                borderColor: colors.borderColor.slice(0, 2),
+                data: Object.values(paymentMethods),
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.5)',
+                    'rgba(54, 162, 235, 0.5)',
+                    'rgba(255, 206, 86, 0.5)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)'
+                ],
                 borderWidth: 1
             }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             plugins: {
-                legend: { position: 'top', labels: { color: colors.textColor } }
-            }
-        }
-    });
-}
-function createDistrictChart() {
-    const ctx = document.getElementById('districtChart').getContext('2d');
-    if (districtChart) districtChart.destroy();
-    const districtStats = {};
-    orders.forEach(order => {
-        const district = order.district;
-        if (!districtStats[district]) districtStats[district] = 0;
-        districtStats[district]++;
-    });
-    const sortedDistricts = Object.entries(districtStats).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    const labels = sortedDistricts.map(d => d[0]);
-    const data = sortedDistricts.map(d => d[1]);
-    const colors = getChartColors();
-    districtChart = new Chart(ctx, {
-        type: 'polarArea',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: colors.backgroundColor.slice(2, 7),
-                borderColor: colors.borderColor.slice(2, 7),
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { position: 'right', labels: { color: colors.textColor } }
-            },
-            scales: {
-                r: {
-                    ticks: { color: colors.textColor, backdropColor: 'transparent' },
-                    grid: { color: colors.gridColor }
+                legend: {
+                    labels: {
+                        color: isDarkTheme ? '#e0e0e0' : '#333'
+                    }
                 }
             }
         }
     });
 }
-function createFrameTypeChart() {
-    const ctx = document.getElementById('frameTypeChart').getContext('2d');
-    if (frameTypeChart) frameTypeChart.destroy();
-    const typeStats = {};
+
+function updateDistrictChart() {
+    const districts = {};
     orders.forEach(order => {
-        const type = order.frameType;
-        if (!typeStats[type]) typeStats[type] = 0;
-        typeStats[type] += order.quantity;
-    });
-    const labels = Object.keys(typeStats);
-    const data = Object.values(typeStats);
-    const colors = getChartColors();
-    frameTypeChart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: data,
-                backgroundColor: colors.backgroundColor.slice(0, labels.length),
-                borderColor: colors.borderColor.slice(0, labels.length),
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { position: 'right', labels: { color: colors.textColor } }
-            }
+        if (order.status !== 'Refund') {
+            districts[order.district] = (districts[order.district] || 0) + 1;
         }
     });
-}
-function createCityChart() {
-    const ctx = document.getElementById('cityChart').getContext('2d');
-    if (cityChart) cityChart.destroy();
-    const cityStats = {};
-    orders.forEach(order => {
-        const city = order.city;
-        if (!cityStats[city]) cityStats[city] = 0;
-        cityStats[city]++;
-    });
-    const sortedCities = Object.entries(cityStats).sort((a, b) => b[1] - a[1]).slice(0, 5);
-    const labels = sortedCities.map(c => c[0]);
-    const data = sortedCities.map(c => c[1]);
-    const colors = getChartColors();
-    cityChart = new Chart(ctx, {
+
+    const ctx = document.getElementById('districtChart');
+    if (!ctx) return;
+
+    if (districtChart) {
+        districtChart.destroy();
+    }
+
+    const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+    
+    districtChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: labels,
-            datasets: [
-                {
-                    label: 'Order Count',
-                    data: data,
-                    backgroundColor: colors.backgroundColor.slice(5, 10),
-                    borderColor: colors.borderColor.slice(5, 10),
-                    borderWidth: 1
-                }
-            ]
+            labels: Object.keys(districts),
+            datasets: [{
+                label: 'Orders by District',
+                data: Object.values(districts),
+                backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
         },
         options: {
-            indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: { ticks: { color: colors.textColor }, grid: { color: colors.gridColor } },
-                x: { beginAtZero: true, ticks: { color: colors.textColor }, grid: { color: colors.gridColor } }
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: isDarkTheme ? '#e0e0e0' : '#333',
+                        stepSize: 1
+                    },
+                    grid: {
+                        color: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: isDarkTheme ? '#e0e0e0' : '#333'
+                    },
+                    grid: {
+                        color: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                    }
+                }
             },
             plugins: {
-                legend: { labels: { color: colors.textColor } }
+                legend: {
+                    labels: {
+                        color: isDarkTheme ? '#e0e0e0' : '#333'
+                    }
+                }
             }
         }
     });
 }
+
+function updateFrameTypeChart() {
+    const frameTypes = {};
+    orders.forEach(order => {
+        if (order.status !== 'Refund') {
+            frameTypes[order.frameType] = (frameTypes[order.frameType] || 0) + 1;
+        }
+    });
+
+    const ctx = document.getElementById('frameTypeChart');
+    if (!ctx) return;
+
+    if (frameTypeChart) {
+        frameTypeChart.destroy();
+    }
+
+    const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+    
+    frameTypeChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(frameTypes),
+            datasets: [{
+                data: Object.values(frameTypes),
+                backgroundColor: [
+                    'rgba(255, 159, 64, 0.5)',
+                    'rgba(153, 102, 255, 0.5)',
+                    'rgba(255, 99, 132, 0.5)'
+                ],
+                borderColor: [
+                    'rgba(255, 159, 64, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 99, 132, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: isDarkTheme ? '#e0e0e0' : '#333'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateCityChart() {
+    const cities = {};
+    orders.forEach(order => {
+        if (order.status !== 'Refund') {
+            cities[order.city] = (cities[order.city] || 0) + 1;
+        }
+    });
+
+    const ctx = document.getElementById('cityChart');
+    if (!ctx) return;
+
+    if (cityChart) {
+        cityChart.destroy();
+    }
+
+    const isDarkTheme = document.documentElement.getAttribute('data-theme') === 'dark';
+    
+    cityChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(cities),
+            datasets: [{
+                label: 'Orders by City',
+                data: Object.values(cities),
+                backgroundColor: 'rgba(153, 102, 255, 0.5)',
+                borderColor: 'rgba(153, 102, 255, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            scales: {
+                x: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: isDarkTheme ? '#e0e0e0' : '#333',
+                        stepSize: 1
+                    },
+                    grid: {
+                        color: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                    }
+                },
+                y: {
+                    ticks: {
+                        color: isDarkTheme ? '#e0e0e0' : '#333'
+                    },
+                    grid: {
+                        color: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: isDarkTheme ? '#e0e0e0' : '#333'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateTopSellingStats() {
+    const frameSizes = {};
+    const districts = {};
+    let codCount = 0;
+    let totalCount = 0;
+
+    orders.forEach(order => {
+        if (order.status !== 'Refund') {
+            frameSizes[order.frameSize] = (frameSizes[order.frameSize] || 0) + 1;
+            districts[order.district] = (districts[order.district] || 0) + 1;
+            if (order.paymentMethod === 'COD') codCount++;
+            totalCount++;
+        }
+    });
+
+    const sortedSizes = Object.entries(frameSizes).sort((a, b) => b[1] - a[1]);
+    const sortedDistricts = Object.entries(districts).sort((a, b) => b[1] - a[1]);
+    
+    const topSize = sortedSizes[0] || ['-', 0];
+    const leastSize = sortedSizes[sortedSizes.length - 1] || ['-', 0];
+    const topDistrict = sortedDistricts[0] || ['-', 0];
+    const codPercentage = totalCount > 0 ? ((codCount / totalCount) * 100).toFixed(1) : 0;
+
+    document.getElementById('topSize').textContent = topSize[0];
+    document.getElementById('topSizeCount').textContent = `${topSize[1]} orders`;
+    document.getElementById('leastSize').textContent = leastSize[0];
+    document.getElementById('leastSizeCount').textContent = `${leastSize[1]} orders`;
+    document.getElementById('topDistrict').textContent = topDistrict[0];
+    document.getElementById('topDistrictCount').textContent = `${topDistrict[1]} orders`;
+    document.getElementById('codPercentage').textContent = `${codPercentage}%`;
+    document.getElementById('codCount').textContent = `${codCount} orders`;
+}
+
 function updateChartTheme() {
-    if (document.getElementById('analytics').classList.contains('active')) {
-        updateAnalytics();
-    }
+    updateAnalytics();
 }
 
-// ===== LOGOUT FUNCTIONALITY (වෙනසක් නෑ) =====
-function logout() {
-    if (confirm('Are you sure you want to logout?')) {
-        localStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('adminUsername');
-        window.location.href = 'login.html';
-    }
+function exportToExcel() {
+    alert('Export feature will be implemented soon!');
 }
-const logoutHTML = `
-    <div style="padding: 15px 12px; border-top: 2px solid rgba(255, 255, 255, 0.1); margin-top: 20px;">
-        <button onclick="logout()" style="
-            width: 100%; padding: 12px; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-            color: white; border: none; border-radius: 10px; cursor: pointer;
-            font-size: 14px; font-weight: 600; transition: all 0.3s ease;
-            box-shadow: 0 3px 8px rgba(231, 76, 60, 0.3);
-        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 12px rgba(231, 76, 60, 0.4)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 3px 8px rgba(231, 76, 60, 0.3)';">
-            🚪 Logout
-        </button>
-    </div>
-`;
-document.querySelector('.sidebar nav').insertAdjacentHTML('afterend', logoutHTML);
-
-// ===== Initialization (Page Load) =====
-document.addEventListener('DOMContentLoaded', () => {
-    // Login check එක index.html එකේ උඩ තියෙන script එකෙන් කරලා තියෙන්නේ.
-    // ඒක නිසා මේක load වෙන්නේ login වුනාට පස්සේ.
-
-    // Dashboard එකට Loading දානවා
-    document.getElementById('totalOrders').textContent = 'Loading...';
-    document.getElementById('totalRevenue').textContent = 'Loading...';
-    document.getElementById('netProfit').textContent = 'Loading...';
-
-    // Firebase එකෙන් data load කරන function එක call කරනවා
-    loadAllData();
-});
