@@ -910,3 +910,17 @@ function updateChartTheme() {
 function exportToExcel() {
     alert('Export feature will be implemented soon!');
 }
+// Logout Handler
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to logout?')) {
+            window.firebaseSignOut(window.auth).then(() => {
+                window.location.href = 'login.html';
+            }).catch((error) => {
+                console.error('Logout error:', error);
+                alert('Logout failed. Please try again.');
+            });
+        }
+    });
+}
